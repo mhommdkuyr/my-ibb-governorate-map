@@ -1,0 +1,38 @@
+name: Sync & Split PMTiles Vector Layers for GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-pmtiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Overture PMTiles from v1.1.0-ibb-map-full
+        run: |
+          mkdir -p pmtiles
+          BASE="https://github.com/mhommdkuyr/ibb-map-gis-downloader/releases/download/v1.1.0-ibb-map-full"
+          for f in governorate.pmtiles districts.pmtiles base.pmtiles roads.pmtiles places.pmtiles settlements.pmtiles buildings.pmtiles; do
+            echo "Downloading $f..."
+            curl -sL "$BASE/$f" -o "pmtiles/$f"
+          done
+          ls -lh pmtiles/
+
+      - name: Split buildings.pmtiles into <100MB parts for GitHub Pages Range Requests
+        run: |
+          python3 scripts/split_pmtiles.py
+          rm -f pmtiles/buildings.pmtiles
+          ls -lh pmtiles/
+
+      - name: Commit & Push PMTiles to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pmtiles/
+          git commit -m "feat: host full Overture PMTiles (444,968 3D buildings, 13,125 roads, base, districts, settlements) for instant HTTP Range streaming"
+          git push
