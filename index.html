@@ -7,10 +7,10 @@
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0f172a" />
 
-  <!-- MapLibre GL JS (WebGL GPU 3D Vector Engine) -->
+  <!-- MapLibre GL JS v4.7.1 (WebGL GPU 3D Vector Engine) -->
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <!-- PMTiles v3 Protocol (HTTP Range Request Streaming) -->
+  <!-- PMTiles v3.2.0 (Instant HTTP Range Request Streaming) -->
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
   <!-- Font Awesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -33,30 +33,20 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background: #e5e7eb;
+      background: #f1f5f9;
       color: var(--text);
       user-select: none;
     }
 
-    #map {
-      width: 100vw;
-      height: 100vh;
-    }
+    #map { width: 100vw; height: 100vh; }
 
-    /* Top Search & Filter Bar */
+    /* Top Search Bar */
     .top-container {
       position: absolute;
       top: 12px;
       right: 12px;
       left: 12px;
       z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-
-    .top-row {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -122,7 +112,7 @@
     .icon-btn:hover { color: var(--primary); background: rgba(255,255,255,0.06); }
 
     .search-results {
-      max-height: 310px;
+      max-height: 300px;
       overflow-y: auto;
       border-top: 1px solid var(--border);
       display: none;
@@ -135,55 +125,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: background 0.15s;
     }
     .search-item:hover { background: rgba(16, 185, 129, 0.14); }
     .search-item .s-title { font-size: 0.88rem; font-weight: 700; color: var(--text); }
     .search-item .s-sub { font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; }
     .search-item .s-tag {
-      font-size: 0.71rem;
-      padding: 2px 7px;
-      border-radius: 6px;
-      background: var(--bg-card);
-      color: #6ee7b7;
-      border: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    /* Category Filter Pills */
-    .category-pills {
-      pointer-events: auto;
-      display: flex;
-      gap: 7px;
-      overflow-x: auto;
-      padding: 2px 2px 6px 2px;
-      scrollbar-width: none;
-    }
-    .category-pills::-webkit-scrollbar { display: none; }
-
-    .cat-pill {
-      background: var(--bg-glass);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.79rem;
-      font-weight: 600;
-      white-space: nowrap;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.18s;
-    }
-    .cat-pill:hover { border-color: var(--primary); transform: translateY(-1px); }
-    .cat-pill.active {
-      background: var(--primary);
-      color: #022c22;
-      border-color: var(--primary);
-      font-weight: 800;
+      font-size: 0.71rem; padding: 2px 7px; border-radius: 6px;
+      background: var(--bg-card); color: #6ee7b7; border: 1px solid var(--border); white-space: nowrap;
     }
 
     .stats-pill {
@@ -191,14 +139,14 @@
       background: var(--bg-glass);
       backdrop-filter: blur(12px);
       border: 1px solid var(--border);
-      padding: 7px 14px;
+      padding: 8px 14px;
       border-radius: 12px;
-      font-size: 0.77rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       box-shadow: var(--shadow);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
       white-space: nowrap;
     }
     .stats-pill strong { color: #34d399; }
@@ -236,11 +184,7 @@
       transition: all 0.18s;
     }
     .mode-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
-    .mode-btn.active {
-      background: var(--primary);
-      color: #022c22;
-      border-color: var(--primary);
-    }
+    .mode-btn.active { background: var(--primary); color: #022c22; border-color: var(--primary); }
 
     /* Right Quick Controls */
     .quick-controls {
@@ -270,7 +214,6 @@
       transition: all 0.18s;
     }
     .ctrl-btn:hover { background: var(--primary); color: #022c22; border-color: var(--primary); }
-    .ctrl-btn.active-toggle { background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: #10b981; }
     .ctrl-btn.z19-badge { background: #f59e0b; color: #451a03; font-weight: 900; font-size: 0.78rem; border-color: #f59e0b; }
     .ctrl-btn.btn-3d { background: #3b82f6; color: #fff; font-weight: 900; font-size: 0.78rem; border-color: #3b82f6; }
 
@@ -311,48 +254,17 @@
     }
     .drawer.open { right: 0; }
     .drawer-header {
-      padding: 15px 16px;
-      background: #020617;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 15px 16px; background: #020617; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
     }
     .drawer-header h3 { font-size: 1rem; color: #34d399; display: flex; align-items: center; gap: 8px; }
-    .drawer-section {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .toggle-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.82rem;
-      color: #e2e8f0;
-      cursor: pointer;
-    }
+    .drawer-section { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #e2e8f0; cursor: pointer; }
     .toggle-row input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
-    .region-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
+    .region-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
     .region-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 9px 12px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.15s;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px;
+      padding: 9px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
     }
     .region-item:hover { border-color: var(--primary); background: #263349; }
     .region-item h4 { font-size: 0.87rem; color: var(--text); }
@@ -413,45 +325,27 @@
 
   <div id="map"></div>
 
-  <!-- Top Search & Filter Bar -->
+  <!-- Top Search Bar -->
   <div class="top-container">
-    <div class="top-row">
-      <div class="search-box-wrap">
-        <div class="search-bar">
-          <button class="icon-btn" id="btn-open-drawer" title="المديريات الـ 29 والتحكم بالطبقات"><i class="fa-solid fa-bars"></i></button>
-          <div class="brand-badge" id="btn-home" title="خريطتي لمحافظة إب">
-            <i class="fa-solid fa-cube"></i>
-            <span>خريطتي 3D — إب</span>
-          </div>
-          <input type="text" id="search-input" placeholder="ابحث عن محل، قرية، مسجد، مستشفى، شارع..." autocomplete="off" />
-          <button class="icon-btn" id="btn-clear-search" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+    <div class="search-box-wrap">
+      <div class="search-bar">
+        <button class="icon-btn" id="btn-open-drawer" title="المديريات الـ 29 والتحكم بالطبقات"><i class="fa-solid fa-bars"></i></button>
+        <div class="brand-badge" id="btn-home" title="خريطتي لمحافظة إب">
+          <i class="fa-solid fa-cube"></i>
+          <span>خريطتي 3D — إب</span>
         </div>
-        <div class="search-results" id="search-results"></div>
+        <input type="text" id="search-input" placeholder="ابحث عن مديرية، قرية، منشأة، موقع..." autocomplete="off" />
+        <button class="icon-btn" id="btn-clear-search" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
       </div>
-
-      <div class="stats-pill">
-        <span><i class="fa-solid fa-cubes"></i> <strong>444,968</strong> مبنى 3D</span>
-        <span>|</span>
-        <span><i class="fa-solid fa-road"></i> <strong>13,125</strong> طريق</span>
-        <span>|</span>
-        <span><i class="fa-solid fa-location-dot"></i> <strong id="loaded-pois">57,556</strong> موقع</span>
-      </div>
+      <div class="search-results" id="search-results"></div>
     </div>
 
-    <div class="category-pills" id="category-pills">
-      <button class="cat-pill active" data-cat="all"><i class="fa-solid fa-layer-group"></i> الكل (ذكي)</button>
-      <button class="cat-pill" data-cat="hospital"><i class="fa-solid fa-hospital" style="color:#ef4444;"></i> مستشفيات وعيادات</button>
-      <button class="cat-pill" data-cat="pharmacy"><i class="fa-solid fa-prescription-bottle-medical" style="color:#f43f5e;"></i> صيدليات</button>
-      <button class="cat-pill" data-cat="restaurant"><i class="fa-solid fa-utensils" style="color:#f97316;"></i> مطاعم</button>
-      <button class="cat-pill" data-cat="cafe"><i class="fa-solid fa-mug-hot" style="color:#d97706;"></i> كافيهات</button>
-      <button class="cat-pill" data-cat="hotel"><i class="fa-solid fa-hotel" style="color:#ec4899;"></i> فنادق</button>
-      <button class="cat-pill" data-cat="supermarket"><i class="fa-solid fa-cart-shopping" style="color:#a855f7;"></i> سوبرماركت</button>
-      <button class="cat-pill" data-cat="bank"><i class="fa-solid fa-building-columns" style="color:#3b82f6;"></i> بنوك وصرافة</button>
-      <button class="cat-pill" data-cat="mosque"><i class="fa-solid fa-mosque" style="color:#10b981;"></i> مساجد</button>
-      <button class="cat-pill" data-cat="school"><i class="fa-solid fa-graduation-cap" style="color:#6366f1;"></i> مدارس وجامعات</button>
-      <button class="cat-pill" data-cat="electronics"><i class="fa-solid fa-mobile-screen" style="color:#06b6d4;"></i> إلكترونيات</button>
-      <button class="cat-pill" data-cat="gas"><i class="fa-solid fa-gas-pump" style="color:#eab308;"></i> وقود وورش</button>
-      <button class="cat-pill" data-cat="park"><i class="fa-solid fa-tree" style="color:#22c55e;"></i> حدائق ومعالم</button>
+    <div class="stats-pill">
+      <span><i class="fa-solid fa-cubes"></i> <strong>444,968</strong> مبنى 3D</span>
+      <span>|</span>
+      <span><i class="fa-solid fa-road"></i> <strong>13,125</strong> طريق</span>
+      <span>|</span>
+      <span><i class="fa-solid fa-bolt"></i> بث لحظي للمنطقة المتصفحة</span>
     </div>
   </div>
 
@@ -463,7 +357,7 @@
     </button>
     <button class="mode-btn" data-mode="sat_3d">
       <i class="fa-solid fa-satellite"></i>
-      <span>قمر صناعي + مباني 3D</span>
+      <span>قمر صناعي + مباني 3D + أسماء</span>
     </button>
     <button class="mode-btn" data-mode="dark_3d">
       <i class="fa-solid fa-moon"></i>
@@ -499,7 +393,7 @@
     </div>
     <div class="pc-meta" id="pc-meta"></div>
     <div class="pc-coords">
-      <span id="pc-coords-txt">13.966700, 44.166700</span>
+      <span id="pc-coords-txt">13.968500, 44.168000</span>
       <span id="pc-pluscode" style="color:#34d399; font-weight:700;">—</span>
     </div>
     <div class="pc-actions">
@@ -516,16 +410,16 @@
     </div>
     <div class="drawer-section">
       <label class="toggle-row">
-        <span>إظهار المباني ثلاثية الأبعاد (444,968 مبنى)</span>
+        <span>المباني ثلاثية الأبعاد 3D (444,968 مبنى)</span>
         <input type="checkbox" id="chk-3d" checked />
       </label>
       <label class="toggle-row">
-        <span>إظهار شبكة الطرق والشوارع (13,125 طريق)</span>
+        <span>شبكة الطرق والشوارع (13,125 طريق)</span>
         <input type="checkbox" id="chk-roads" checked />
       </label>
       <label class="toggle-row">
-        <span>إظهار أسماء المحلات والمنشآت عند التكبير</span>
-        <input type="checkbox" id="chk-pois" checked />
+        <span>الأسماء الحية للمعالم والقرى والشوارع</span>
+        <input type="checkbox" id="chk-labels" checked />
       </label>
     </div>
     <div class="region-list" id="region-list"></div>
@@ -533,8 +427,8 @@
 
   <!-- Bottom Status Bar -->
   <div class="bottom-bar">
-    <span id="status-coords">خط العرض: 13.966700° | خط الطول: 44.166700° | Plus Code: 7J3XX588+MM</span>
-    <span id="status-zoom">الزوم: <strong style="color:#34d399;">15.5</strong> | WebGL 3D Vector + HTTP Range Streaming</span>
+    <span id="status-coords">خط العرض: 13.968500° | خط الطول: 44.168000° | Plus Code: 7J3XX599+C6</span>
+    <span id="status-zoom">الزوم: <strong style="color:#34d399;">16.5</strong> | WebGL 3D Vector + HTTP Range Streaming</span>
   </div>
 
   <script>
@@ -542,13 +436,13 @@
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 
-    // Enable RTL Arabic text shaping plugin for MapLibre GL JS!
+    // Enable Arabic RTL text shaping
     maplibregl.setRTLTextPlugin(
       'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.2.3/mapbox-gl-rtl-text.min.js',
       true
     );
 
-    // Register PMTiles v3 Protocol
+    // Register PMTiles v3 protocol
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol('pmtiles', protocol.tile);
 
@@ -568,84 +462,46 @@
       return res;
     }
 
-    const CAT_LABELS = {
-      hospital: '🏥 مستشفى / مركز طبي',
-      clinic: '🩺 عيادة / طب أسنان',
-      pharmacy: '💊 صيدلية / مختبر',
-      restaurant: '🍽️ مطعم / بوفيه',
-      cafe: '☕ مقهى / كافيه',
-      bakery: '🥖 مخبز / حلويات',
-      hotel: '🏨 فندق / منتجع',
-      supermarket: '🛒 سوبرماركت / مول',
-      clothing: '👔 ملابس وأزياء',
-      electronics: '📱 جوالات وإلكترونيات',
-      furniture: '🛋️ أثاث ومفروشات',
-      jewelry: '💎 ذهب ومجوهرات',
-      bookstore: '📚 مكتبة وقرطاسية',
-      salon: '✂️ صالون حلاقة وتجميل',
-      bank: '🏦 بنك / صرافة / ATM',
-      company: '🏢 شركة / مكتب تجاري',
-      gas: '⛽ محطة وقود وغاز',
-      auto: '🔧 ورشة وخدمات سيارات',
-      university: '🎓 جامعة / كلية',
-      school: '🏫 مدرسة تعليمية',
-      gym: '🏆 نادي رياضي / قاعة',
-      mosque: '🕌 مسجد / جامع',
-      park: '🌳 حديقة / معلم',
-      street: '🛣️ شارع / حي',
-      shop: '🏪 محل / منشأة محلية'
-    };
-
-    const CAT_COLORS = {
-      hospital: '#ef4444', clinic: '#f87171', pharmacy: '#f43f5e',
-      restaurant: '#f97316', cafe: '#d97706', bakery: '#fb923c',
-      hotel: '#ec4899', supermarket: '#a855f7', bank: '#2563eb',
-      mosque: '#059669', school: '#4f46e5', university: '#4338ca',
-      electronics: '#0891b2', gas: '#ca8a04', auto: '#64748b',
-      park: '#16a34a', shop: '#0284c7', street: '#475569'
-    };
-
     const REGIONS = [
-      { code: "U01_Ibb_City", name_ar: "مدينة إب (المركز)", name_en: "Ibb City", north: 14.0150, south: 13.9250, east: 44.2150, west: 44.1400, zoom: 16 },
-      { code: "D02_Al_Dhihar", name_ar: "مديرية الظهار", name_en: "Al Dhihar", north: 14.0039, south: 13.9539, east: 44.1825, west: 44.1225, zoom: 15.5 },
-      { code: "D03_Al_Mashannah", name_ar: "مديرية المشنة", name_en: "Al Mashannah", north: 13.9821, south: 13.9321, east: 44.2115, west: 44.1515, zoom: 15.5 },
-      { code: "D01_Ibb", name_ar: "مديرية إب (ريف إب)", name_en: "Ibb District", north: 14.0067, south: 13.9267, east: 44.2283, west: 44.1383, zoom: 15 },
-      { code: "D04_Jiblah", name_ar: "مديرية جبلة", name_en: "Jiblah", north: 13.9591, south: 13.8891, east: 44.1859, west: 44.1059, zoom: 15 },
-      { code: "U03_Al_Qaidah_City", name_ar: "مدينة القاعدة", name_en: "Al Qaidah City", north: 13.7820, south: 13.7320, east: 44.1620, west: 44.1150, zoom: 16 },
-      { code: "U04_Yarim_City", name_ar: "مدينة يريم", name_en: "Yarim City", north: 14.3220, south: 14.2720, east: 44.4020, west: 44.3500, zoom: 16 },
-      { code: "U02_Al_Udayn_City", name_ar: "مدينة العدين", name_en: "Al Udayn City", north: 13.9920, south: 13.9480, east: 44.0150, west: 43.9650, zoom: 16 },
-      { code: "U05_Dhi_As_Sufal_City", name_ar: "مدينة ذي السفال", name_en: "Dhi As Sufal", north: 13.8550, south: 13.8150, east: 44.1320, west: 44.0880, zoom: 16 },
-      { code: "U06_Al_Makhadir_City", name_ar: "مدينة المخادر", name_en: "Al Makhadir", north: 14.1320, south: 14.0900, east: 44.2200, west: 44.1780, zoom: 16 },
-      { code: "U07_An_Nadirah_City", name_ar: "مدينة النادرة", name_en: "An Nadirah", north: 14.1220, south: 14.0810, east: 44.5020, west: 44.4570, zoom: 16 },
-      { code: "U08_As_Saddah_City", name_ar: "مدينة السدة", name_en: "As Saddah", north: 14.1860, south: 14.1460, east: 44.3980, west: 44.3520, zoom: 16 },
-      { code: "D05_Badan", name_ar: "مديرية بعدان", name_en: "Ba'dan", north: 14.0339, south: 13.9439, east: 44.3731, west: 44.2731, zoom: 14.5 },
-      { code: "D06_As_Sabrah", name_ar: "مديرية السبرة", name_en: "As Sabrah", north: 13.9610, south: 13.8710, east: 44.3740, west: 44.2740, zoom: 14.5 },
-      { code: "D07_As_Sayyani", name_ar: "مديرية السياني", name_en: "As Sayyani", north: 13.8539, south: 13.7739, east: 44.2063, west: 44.1163, zoom: 14.5 },
-      { code: "D08_Dhi_As_Sufal", name_ar: "مديرية ذي السفال", name_en: "Dhi As Sufal", north: 13.8805, south: 13.7905, east: 44.1603, west: 44.0603, zoom: 14.5 },
-      { code: "D09_Mudhaykhirah", name_ar: "مديرية مذيخرة", name_en: "Mudhaykhirah", north: 13.9111, south: 13.8211, east: 44.0189, west: 43.9189, zoom: 14.5 },
-      { code: "D10_Al_Udayn", name_ar: "مديرية العدين", name_en: "Al Udayn", north: 14.0250, south: 13.9150, east: 44.0500, west: 43.9300, zoom: 14.5 },
-      { code: "D11_Far_Al_Udayn", name_ar: "مديرية فرع العدين", name_en: "Far Al Udayn", north: 13.9597, south: 13.8397, east: 43.8731, west: 43.7431, zoom: 14.5 },
-      { code: "D12_Hazm_Al_Udayn", name_ar: "مديرية حزم العدين", name_en: "Hazm Al Udayn", north: 14.1696, south: 14.0596, east: 43.9645, west: 43.8445, zoom: 14.5 },
-      { code: "D13_Hubaysh", name_ar: "مديرية حبيش", name_en: "Hubaysh", north: 14.1611, south: 14.0711, east: 44.1319, west: 44.0319, zoom: 14.5 },
-      { code: "D14_Al_Makhadir", name_ar: "مديرية المخادر", name_en: "Al Makhadir", north: 14.1561, south: 14.0661, east: 44.2493, west: 44.1493, zoom: 14.5 },
-      { code: "D15_Al_Qafr", name_ar: "مديرية القفر", name_en: "Al Qafr", north: 14.3200, south: 14.1800, east: 44.1600, west: 44.0000, zoom: 14 },
-      { code: "D16_Yarim", name_ar: "مديرية يريم", name_en: "Yarim", north: 14.3615, south: 14.2315, east: 44.4457, west: 44.3057, zoom: 14.5 },
-      { code: "D17_Ar_Radmah", name_ar: "مديرية الرضمة", name_en: "Ar Radmah", north: 14.2550, south: 14.1450, east: 44.6500, west: 44.5300, zoom: 14.5 },
-      { code: "D18_As_Saddah", name_ar: "مديرية السدة", name_en: "As Saddah", north: 14.2111, south: 14.1211, east: 44.4251, west: 44.3251, zoom: 14.5 },
-      { code: "D19_An_Nadirah", name_ar: "مديرية النادرة", name_en: "An Nadirah", north: 14.1515, south: 14.0515, east: 44.5345, west: 44.4245, zoom: 14.5 },
-      { code: "D20_Ash_Shair", name_ar: "مديرية الشعر", name_en: "Ash Sha'ir", north: 14.0539, south: 13.9739, east: 44.4415, west: 44.3515, zoom: 14.5 }
+      { code: "U01_Ibb_City", name_ar: "مدينة إب (المركز)", name_en: "Ibb City", lat: 13.9685, lng: 44.1680, zoom: 16.5 },
+      { code: "D02_Al_Dhihar", name_ar: "مديرية الظهار", name_en: "Al Dhihar", lat: 13.9789, lng: 44.1525, zoom: 16 },
+      { code: "D03_Al_Mashannah", name_ar: "مديرية المشنة", name_en: "Al Mashannah", lat: 13.9571, lng: 44.1815, zoom: 16 },
+      { code: "D01_Ibb", name_ar: "مديرية إب (ريف إب)", name_en: "Ibb District", lat: 13.9667, lng: 44.1833, zoom: 15 },
+      { code: "D04_Jiblah", name_ar: "مديرية جبلة", name_en: "Jiblah", lat: 13.9241, lng: 44.1459, zoom: 16 },
+      { code: "U03_Al_Qaidah_City", name_ar: "مدينة القاعدة", name_en: "Al Qaidah City", lat: 13.7572, lng: 44.1388, zoom: 16.5 },
+      { code: "U04_Yarim_City", name_ar: "مدينة يريم", name_en: "Yarim City", lat: 14.2965, lng: 44.3757, zoom: 16.5 },
+      { code: "U02_Al_Udayn_City", name_ar: "مدينة العدين", name_en: "Al Udayn City", lat: 13.9700, lng: 43.9900, zoom: 16.5 },
+      { code: "U05_Dhi_As_Sufal_City", name_ar: "مدينة ذي السفال", name_en: "Dhi As Sufal", lat: 13.8355, lng: 44.1103, zoom: 16.5 },
+      { code: "U06_Al_Makhadir_City", name_ar: "مدينة المخادر", name_en: "Al Makhadir", lat: 14.1111, lng: 44.1993, zoom: 16.5 },
+      { code: "U07_An_Nadirah_City", name_ar: "مدينة النادرة", name_en: "An Nadirah", lat: 14.1015, lng: 44.4795, zoom: 16.5 },
+      { code: "U08_As_Saddah_City", name_ar: "مدينة السدة", name_en: "As Saddah", lat: 14.1661, lng: 44.3751, zoom: 16.5 },
+      { code: "D05_Badan", name_ar: "مديرية بعدان", name_en: "Ba'dan", lat: 13.9889, lng: 44.3231, zoom: 15 },
+      { code: "D06_As_Sabrah", name_ar: "مديرية السبرة", name_en: "As Sabrah", lat: 13.9160, lng: 44.3240, zoom: 15 },
+      { code: "D07_As_Sayyani", name_ar: "مديرية السياني", name_en: "As Sayyani", lat: 13.8139, lng: 44.1613, zoom: 15 },
+      { code: "D08_Dhi_As_Sufal", name_ar: "مديرية ذي السفال", name_en: "Dhi As Sufal", lat: 13.8355, lng: 44.1103, zoom: 15 },
+      { code: "D09_Mudhaykhirah", name_ar: "مديرية مذيخرة", name_en: "Mudhaykhirah", lat: 13.8661, lng: 43.9689, zoom: 15 },
+      { code: "D10_Al_Udayn", name_ar: "مديرية العدين", name_en: "Al Udayn", lat: 13.9700, lng: 43.9900, zoom: 15 },
+      { code: "D11_Far_Al_Udayn", name_ar: "مديرية فرع العدين", name_en: "Far Al Udayn", lat: 13.8997, lng: 43.8081, zoom: 15 },
+      { code: "D12_Hazm_Al_Udayn", name_ar: "مديرية حزم العدين", name_en: "Hazm Al Udayn", lat: 14.1146, lng: 43.9045, zoom: 15 },
+      { code: "D13_Hubaysh", name_ar: "مديرية حبيش", name_en: "Hubaysh", lat: 14.1161, lng: 44.0819, zoom: 15 },
+      { code: "D14_Al_Makhadir", name_ar: "مديرية المخادر", name_en: "Al Makhadir", lat: 14.1111, lng: 44.1993, zoom: 15 },
+      { code: "D15_Al_Qafr", name_ar: "مديرية القفر", name_en: "Al Qafr", lat: 14.2500, lng: 44.0800, zoom: 14.5 },
+      { code: "D16_Yarim", name_ar: "مديرية يريم", name_en: "Yarim", lat: 14.2965, lng: 44.3757, zoom: 15 },
+      { code: "D17_Ar_Radmah", name_ar: "مديرية الرضمة", name_en: "Ar Radmah", lat: 14.2000, lng: 44.5900, zoom: 15 },
+      { code: "D18_As_Saddah", name_ar: "مديرية السدة", name_en: "As Saddah", lat: 14.1661, lng: 44.3751, zoom: 15 },
+      { code: "D19_An_Nadirah", name_ar: "مديرية النادرة", name_en: "An Nadirah", lat: 14.1015, lng: 44.4795, zoom: 15 },
+      { code: "D20_Ash_Shair", name_ar: "مديرية الشعر", name_en: "Ash Sha'ir", lat: 14.0139, lng: 44.3965, zoom: 15 }
     ];
 
-    // Base PMTiles URL on GitHub Pages (Supports CORS + HTTP 206 Range Requests!)
     const PM_BASE = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '') + '/pmtiles';
 
-    // Initialize MapLibre GL JS with WebGL 3D Style
+    // Initialize MapLibre GL JS directly in 3D over Ibb City Center!
     const map = new maplibregl.Map({
       container: 'map',
-      center: [44.1680, 13.9685], // Ibb City Center (Shar' Al-Udayn / Center)
-      zoom: 15.8,
-      pitch: 48, // True 3D perspective on startup!
-      bearing: -12,
+      center: [44.1680, 13.9685],
+      zoom: 16.5,
+      pitch: 52,
+      bearing: -15,
       maxZoom: 20,
       minZoom: 8,
       antialias: true,
@@ -653,17 +509,22 @@
         version: 8,
         glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
-          gov_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/governorate.pmtiles` },
-          dist_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/districts.pmtiles` },
-          base_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/base.pmtiles` },
-          roads_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/roads.pmtiles` },
-          bld_low_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/buildings_z14_17.pmtiles` },
+          gov_pm:      { type: 'vector', url: `pmtiles://${PM_BASE}/governorate.pmtiles` },
+          dist_pm:     { type: 'vector', url: `pmtiles://${PM_BASE}/districts.pmtiles` },
+          base_pm:     { type: 'vector', url: `pmtiles://${PM_BASE}/base.pmtiles` },
+          roads_pm:    { type: 'vector', url: `pmtiles://${PM_BASE}/roads.pmtiles` },
+          bld_low_pm:  { type: 'vector', url: `pmtiles://${PM_BASE}/buildings_z14_17.pmtiles` },
           bld_high_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/buildings_z18.pmtiles` },
-          places_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/places.pmtiles` },
-          sett_pm: { type: 'vector', url: `pmtiles://${PM_BASE}/settlements.pmtiles` },
+          places_pm:   { type: 'vector', url: `pmtiles://${PM_BASE}/places.pmtiles` },
+          sett_pm:     { type: 'vector', url: `pmtiles://${PM_BASE}/settlements.pmtiles` },
           google_sat: {
             type: 'raster',
             tiles: ['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],
+            tileSize: 256, maxzoom: 19
+          },
+          google_labels: {
+            type: 'raster',
+            tiles: ['https://mt0.google.com/vt/lyrs=h&hl=ar&gl=YE&x={x}&y={y}&z={z}', 'https://mt1.google.com/vt/lyrs=h&hl=ar&gl=YE&x={x}&y={y}&z={z}'],
             tileSize: 256, maxzoom: 19
           },
           google_hybrid: {
@@ -675,22 +536,15 @@
             type: 'raster',
             tiles: ['https://mt0.google.com/vt/lyrs=m&hl=ar&gl=YE&x={x}&y={y}&z={z}', 'https://mt1.google.com/vt/lyrs=m&hl=ar&gl=YE&x={x}&y={y}&z={z}'],
             tileSize: 256, maxzoom: 19
-          },
-          ocr_pois: {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
           }
         },
         layers: [
-          // 1. Clean White Background
           { id: 'bg', type: 'background', paint: { 'background-color': '#f1f5f9' } },
-
-          // 2. Optional Raster Comparison Layers (Hidden by default in fast White 3D Mode!)
           { id: 'raster-sat', type: 'raster', source: 'google_sat', layout: { visibility: 'none' } },
           { id: 'raster-hybrid', type: 'raster', source: 'google_hybrid', layout: { visibility: 'none' } },
           { id: 'raster-roadmap', type: 'raster', source: 'google_roadmap', layout: { visibility: 'none' } },
 
-          // 3. Overture Base Layers (Landuse & Water)
+          // Landuse & Water
           {
             id: 'landuse-fill', type: 'fill', source: 'base_pm', 'source-layer': 'landuse',
             paint: {
@@ -699,8 +553,7 @@
                 'park', '#bbf7d0',
                 'forest', '#86efac',
                 'agriculture', '#dcfce7',
-                'residential', '#e2e8f0',
-                'commercial', '#fde68a',
+                'commercial', '#fef08a',
                 '#e2e8f0'
               ],
               'fill-opacity': 0.55
@@ -715,17 +568,17 @@
             paint: { 'line-color': '#38bdf8', 'line-width': 2 }
           },
 
-          // 4. Governorate & District Boundaries
+          // Boundaries
           {
             id: 'gov-line', type: 'line', source: 'gov_pm', 'source-layer': 'governorate',
-            paint: { 'line-color': '#f59e0b', 'line-width': 2.5, 'line-dasharray': [4, 2] }
+            paint: { 'line-color': '#f59e0b', 'line-width': 2.2, 'line-dasharray': [4, 2] }
           },
           {
             id: 'dist-line', type: 'line', source: 'dist_pm', 'source-layer': 'district_area',
-            paint: { 'line-color': '#10b981', 'line-width': 1.4, 'line-opacity': 0.65 }
+            paint: { 'line-color': '#10b981', 'line-width': 1.2, 'line-opacity': 0.65 }
           },
 
-          // 5. Road Network (13,125 Road Segments with Casing + Inner Fill like Google Maps!)
+          // Roads (13,125 segments)
           {
             id: 'roads-casing', type: 'line', source: 'roads_pm', 'source-layer': 'segment',
             layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -759,29 +612,42 @@
             }
           },
 
-          // 6. TRUE 3D EXTRUDED BUILDINGS (444,968 Buildings from Overture Maps!)
+          // TRUE 3D EXTRUDED BUILDINGS (444,968 Exact Footprints & Heights!)
           {
             id: 'buildings-3d-low', type: 'fill-extrusion', source: 'bld_low_pm', 'source-layer': 'building',
             minzoom: 14, maxzoom: 18,
             paint: {
-              'fill-extrusion-color': '#cbd5e1',
+              'fill-extrusion-color': [
+                'interpolate', ['linear'], ['coalesce', ['get', 'height'], 8],
+                4, '#e2e8f0',
+                12, '#cbd5e1',
+                25, '#94a3b8'
+              ],
               'fill-extrusion-height': ['coalesce', ['get', 'height'], 8],
               'fill-extrusion-base': 0,
-              'fill-extrusion-opacity': 0.88
+              'fill-extrusion-opacity': 0.90
             }
           },
           {
             id: 'buildings-3d-high', type: 'fill-extrusion', source: 'bld_high_pm', 'source-layer': 'building',
             minzoom: 18,
             paint: {
-              'fill-extrusion-color': '#cbd5e1',
+              'fill-extrusion-color': [
+                'interpolate', ['linear'], ['coalesce', ['get', 'height'], 9],
+                4, '#e2e8f0',
+                12, '#cbd5e1',
+                25, '#94a3b8'
+              ],
               'fill-extrusion-height': ['coalesce', ['get', 'height'], 9],
               'fill-extrusion-base': 0,
-              'fill-extrusion-opacity': 0.90
+              'fill-extrusion-opacity': 0.92
             }
           },
 
-          // 7. Dynamic Road Labels (Rendered on GPU along streets!)
+          // Google Transparent Arabic Labels Layer (Optional overlay for Satellite 3D mode)
+          { id: 'raster-glabels', type: 'raster', source: 'google_labels', layout: { visibility: 'none' } },
+
+          // Live Vector Street & Landmark Labels (Streamed per Viewport via PMTiles!)
           {
             id: 'road-labels', type: 'symbol', source: 'roads_pm', 'source-layer': 'segment',
             minzoom: 15,
@@ -793,27 +659,13 @@
               'text-size': 11.5,
               'text-max-angle': 30
             },
-            paint: {
-              'text-color': '#1e293b',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 2
-            }
+            paint: { 'text-color': '#1e293b', 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 }
           },
-
-          // 8. Dynamic District & Settlement Labels (From Vector Tiles)
           {
             id: 'district-labels', type: 'symbol', source: 'dist_pm', 'source-layer': 'district_area',
             minzoom: 9, maxzoom: 15,
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Noto Sans Bold'],
-              'text-size': 13
-            },
-            paint: {
-              'text-color': '#065f46',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 2.5
-            }
+            layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
+            paint: { 'text-color': '#065f46', 'text-halo-color': '#ffffff', 'text-halo-width': 2.5 }
           },
           {
             id: 'settlement-labels', type: 'symbol', source: 'sett_pm', 'source-layer': 'settlement',
@@ -824,22 +676,14 @@
               'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10.5, 16, 13],
               'text-padding': 4
             },
-            paint: {
-              'text-color': '#0369a1',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 2
-            }
+            paint: { 'text-color': '#0369a1', 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 }
           },
-
-          // 9. Dynamic Overture Verified Places (From places.pmtiles)
           {
             id: 'ov-places-dots', type: 'circle', source: 'places_pm', 'source-layer': 'place',
             minzoom: 13,
             paint: {
               'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3.5, 18, 6],
-              'circle-color': '#10b981',
-              'circle-stroke-width': 1.5,
-              'circle-stroke-color': '#ffffff'
+              'circle-color': '#10b981', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#ffffff'
             }
           },
           {
@@ -852,139 +696,31 @@
               'text-offset': [0, 1.1],
               'text-anchor': 'top'
             },
-            paint: {
-              'text-color': '#0f172a',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 2
-            }
-          },
-
-          // 10. Dynamic Classified Establishments & Shops (44,273 POIs loaded per viewport shard!)
-          {
-            id: 'ocr-pois-dots', type: 'circle', source: 'ocr_pois',
-            minzoom: 15,
-            paint: {
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 3, 19, 5.5],
-              'circle-color': ['get', 'color'],
-              'circle-stroke-width': 1.5,
-              'circle-stroke-color': '#ffffff'
-            }
-          },
-          {
-            id: 'ocr-pois-labels', type: 'symbol', source: 'ocr_pois',
-            minzoom: 16,
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Noto Sans Regular'],
-              'text-size': ['interpolate', ['linear'], ['zoom'], 16, 10.5, 19, 12],
-              'text-offset': [0, 1.0],
-              'text-anchor': 'top',
-              'text-max-width': 12
-            },
-            paint: {
-              'text-color': '#0f172a',
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 2.2
-            }
+            paint: { 'text-color': '#0f172a', 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 }
           }
         ]
       }
     });
 
-    // In-memory store for Search + Active Shards
+    // Tiny instant search index (core_lite.json = 105 KB)
     const SEARCH_STORE = [];
-    const LOADED_SHARDS = new Set();
-    const SHARD_LOADING = new Set();
-    const GEOJSON_FEATURES = [];
-    let activeCatFilter = 'all';
     let is3D = true;
 
-    function updateGeoJSONSource() {
-      const src = map.getSource('ocr_pois');
-      if (!src) return;
-      if (activeCatFilter === 'all') {
-        src.setData({ type: 'FeatureCollection', features: GEOJSON_FEATURES });
-      } else {
-        const filtered = GEOJSON_FEATURES.filter(ft => {
-          const c = ft.properties.cat;
-          if (activeCatFilter === 'hospital') return c === 'hospital' || c === 'clinic';
-          if (activeCatFilter === 'school') return c === 'school' || c === 'university';
-          if (activeCatFilter === 'gas') return c === 'gas' || c === 'auto';
-          return c === activeCatFilter;
-        });
-        src.setData({ type: 'FeatureCollection', features: filtered });
-      }
-    }
-
-    async function loadShard(regCode) {
-      if (LOADED_SHARDS.has(regCode) || SHARD_LOADING.has(regCode)) return;
-      SHARD_LOADING.add(regCode);
-      try {
-        const res = await fetch(`./data/shards/${regCode}.json`);
-        if (!res.ok) return;
-        const items = await res.json();
-        for (let i = 0; i < items.length; i++) {
-          const [name, cat, lat, lng, z, pcode, conf, regAr] = items[i];
-          const col = CAT_COLORS[cat] || '#0284c7';
-          const feat = {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [lng, lat] },
-            properties: { name, cat, reg: regAr, plus: pcode, conf, color: col, minZ: z }
-          };
-          GEOJSON_FEATURES.push(feat);
-          SEARCH_STORE.push({ name, cat, lat, lng, reg: regAr, plus: pcode, conf });
-        }
-        LOADED_SHARDS.add(regCode);
-        updateGeoJSONSource();
-      } catch (e) {
-        console.warn('Shard load skipped:', regCode);
-      } finally {
-        SHARD_LOADING.delete(regCode);
-      }
-    }
-
-    function checkViewportShards() {
-      const z = map.getZoom();
-      if (z < 14.5) return;
-      const b = map.getBounds();
-      for (let i = 0; i < REGIONS.length; i++) {
-        const r = REGIONS[i];
-        const intersects = !(b.getSouth() > r.north || b.getNorth() < r.south || b.getWest() > r.east || b.getEast() < r.west);
-        if (intersects) loadShard(r.code);
-      }
-    }
-
-    // Fast Startup (< 0.3s): load tiny core_lite.json (105 KB) + active viewport shard
-    async function initFastStartup() {
-      try {
-        const res = await fetch('./data/core_lite.json');
-        const core = await res.json();
+    fetch('./data/core_lite.json')
+      .then(r => r.json())
+      .then(core => {
         (core.overture_places || []).forEach(p => {
-          SEARCH_STORE.push({
-            name: p.n, cat: p.c, lat: p.lat, lng: p.lng,
-            reg: 'محافظة إب', phone: p.ph, web: p.w, conf: 99
-          });
+          SEARCH_STORE.push({ name: p.n, cat: p.ca || 'منشأة', lat: p.lat, lng: p.lng, reg: 'محافظة إب', phone: p.ph, web: p.w });
         });
         (core.districts || []).forEach(d => {
-          SEARCH_STORE.push({
-            name: d.names?.ar || d.name, cat: 'company', lat: d.lat, lng: d.lon,
-            reg: 'مديرية', conf: 100
-          });
+          SEARCH_STORE.push({ name: d.names?.ar || d.name, cat: 'مديرية', lat: d.lat, lng: d.lon, reg: 'محافظة إب' });
         });
-      } catch (e) {}
-      checkViewportShards();
-    }
-
-    map.on('load', () => {
-      initFastStartup();
-    });
+      }).catch(() => {});
 
     map.on('moveend zoomend', () => {
       const c = map.getCenter();
-      const z = map.getZoom();
-      document.getElementById('status-zoom').innerHTML = `الزوم: <strong style="color:#34d399;">${z.toFixed(1)}</strong> | WebGL 3D Vector + HTTP Range Streaming`;
+      document.getElementById('status-zoom').innerHTML = `الزوم: <strong style="color:#34d399;">${map.getZoom().toFixed(1)}</strong> | WebGL 3D Vector + HTTP Range Streaming`;
       document.getElementById('status-coords').textContent = `خط العرض: ${c.lat.toFixed(6)}° | خط الطول: ${c.lng.toFixed(6)}° | Plus Code: ${encodePlusCode(c.lat, c.lng)}`;
-      checkViewportShards();
     });
 
     map.on('mousemove', (e) => {
@@ -992,12 +728,11 @@
       document.getElementById('status-coords').textContent = `خط العرض: ${lat.toFixed(6)}° | خط الطول: ${lng.toFixed(6)}° | Plus Code: ${encodePlusCode(lat, lng)}`;
     });
 
-    // Click Inspector for Vector POIs & Buildings
     function showPlaceCard(props, lngLat) {
       const lat = lngLat.lat, lng = lngLat.lng;
-      const pcode = props.plus || encodePlusCode(lat, lng);
+      const pcode = encodePlusCode(lat, lng);
       document.getElementById('pc-title').textContent = props.name || 'موقع في محافظة إب';
-      document.getElementById('pc-cat').textContent = CAT_LABELS[props.cat] || '📍 معلم / موقع جغرافي';
+      document.getElementById('pc-cat').textContent = props.cat || props.basic_category || props.class || '📍 موقع / مبنى';
       let meta = `<div><i class="fa-solid fa-location-dot" style="color:#10b981;"></i> النطاق: <strong>${props.reg || 'محافظة إب'}</strong></div>`;
       if (props.phone) meta += `<div><i class="fa-solid fa-phone" style="color:#38bdf8;"></i> الهاتف: <a href="tel:${props.phone}" style="color:#38bdf8;">${props.phone}</a></div>`;
       if (props.height) meta += `<div><i class="fa-solid fa-building" style="color:#f59e0b;"></i> ارتفاع المبنى 3D: <strong>${props.height} متر</strong></div>`;
@@ -1013,17 +748,16 @@
 
     map.on('click', (e) => {
       const features = map.queryRenderedFeatures(e.point, {
-        layers: ['ocr-pois-labels', 'ocr-pois-dots', 'ov-places-labels', 'ov-places-dots', 'settlement-labels', 'buildings-3d-high', 'buildings-3d-low']
+        layers: ['ov-places-labels', 'ov-places-dots', 'settlement-labels', 'buildings-3d-high', 'buildings-3d-low']
       });
       if (features && features.length > 0) {
-        const f = features[0];
-        showPlaceCard(f.properties || {}, e.lngLat);
+        showPlaceCard(features[0].properties || {}, e.lngLat);
       } else {
-        showPlaceCard({ name: 'نقطة فحص إحداثيات Z' + Math.round(map.getZoom()), cat: 'street' }, e.lngLat);
+        showPlaceCard({ name: 'نقطة فحص إحداثيات Z' + Math.round(map.getZoom()), cat: '📍 إحداثيات' }, e.lngLat);
       }
     });
 
-    // Switch Base Map Modes (White 3D, Satellite 3D, Dark 3D, Google Hybrid, Google Roadmap)
+    // Switch Base Map Modes
     document.querySelectorAll('.mode-btn').forEach(btn => {
       btn.onclick = () => {
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -1031,6 +765,7 @@
         const mode = btn.getAttribute('data-mode');
 
         map.setLayoutProperty('raster-sat', 'visibility', mode === 'sat_3d' ? 'visible' : 'none');
+        map.setLayoutProperty('raster-glabels', 'visibility', mode === 'sat_3d' ? 'visible' : 'none');
         map.setLayoutProperty('raster-hybrid', 'visibility', mode === 'google_hybrid' ? 'visible' : 'none');
         map.setLayoutProperty('raster-roadmap', 'visibility', mode === 'google_roadmap' ? 'visible' : 'none');
 
@@ -1040,37 +775,23 @@
         map.setPaintProperty('bg', 'background-color', mode === 'dark_3d' ? '#0f172a' : '#f1f5f9');
         map.setLayoutProperty('landuse-fill', 'visibility', isVector ? 'visible' : 'none');
         map.setLayoutProperty('water-fill', 'visibility', isVector ? 'visible' : 'none');
-        map.setPaintProperty('roads-fill', 'line-opacity', mode === 'google_hybrid' || mode === 'google_roadmap' ? 0.0 : 0.9);
-        map.setPaintProperty('roads-casing', 'line-opacity', mode === 'google_hybrid' || mode === 'google_roadmap' ? 0.0 : 0.9);
+        map.setPaintProperty('roads-fill', 'line-opacity', (mode === 'google_hybrid' || mode === 'google_roadmap') ? 0.0 : 0.9);
+        map.setPaintProperty('roads-casing', 'line-opacity', (mode === 'google_hybrid' || mode === 'google_roadmap') ? 0.0 : 0.9);
 
-        // Style 3D buildings & labels according to light/dark background
-        const bldColor = mode === 'dark_3d' ? '#334155' : (mode === 'sat_3d' ? '#94a3b8' : '#cbd5e1');
-        const bldOp = (mode === 'sat_3d' || mode === 'google_hybrid') ? 0.55 : 0.88;
-        map.setPaintProperty('buildings-3d-low', 'fill-extrusion-color', bldColor);
-        map.setPaintProperty('buildings-3d-high', 'fill-extrusion-color', bldColor);
+        const bldOp = (mode === 'sat_3d' || mode === 'google_hybrid') ? 0.45 : 0.92;
         map.setPaintProperty('buildings-3d-low', 'fill-extrusion-opacity', bldOp);
         map.setPaintProperty('buildings-3d-high', 'fill-extrusion-opacity', bldOp);
 
         const txtCol = isDark ? '#f8fafc' : '#0f172a';
         const haloCol = isDark ? '#020617' : '#ffffff';
-        ['ocr-pois-labels', 'ov-places-labels', 'road-labels'].forEach(lid => {
+        ['ov-places-labels', 'road-labels'].forEach(lid => {
           map.setPaintProperty(lid, 'text-color', txtCol);
           map.setPaintProperty(lid, 'text-halo-color', haloCol);
         });
       };
     });
 
-    // Category Filter Pills
-    document.querySelectorAll('.cat-pill').forEach(pill => {
-      pill.onclick = () => {
-        document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        activeCatFilter = pill.getAttribute('data-cat');
-        updateGeoJSONSource();
-      };
-    });
-
-    // Search Autocomplete
+    // Search
     const searchInput = document.getElementById('search-input');
     const searchResults = document.getElementById('search-results');
     const clearBtn = document.getElementById('btn-clear-search');
@@ -1083,23 +804,17 @@
       for (let i = 0; i < SEARCH_STORE.length; i++) {
         if (SEARCH_STORE[i].name.toLowerCase().includes(q)) {
           matches.push(SEARCH_STORE[i]);
-          if (matches.length >= 25) break;
+          if (matches.length >= 20) break;
         }
       }
       searchResults.innerHTML = '';
       matches.forEach(m => {
         const div = document.createElement('div');
         div.className = 'search-item';
-        div.innerHTML = `
-          <div>
-            <div class="s-title">${m.name}</div>
-            <div class="s-sub">${m.reg} — ${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}</div>
-          </div>
-          <span class="s-tag">${CAT_LABELS[m.cat] || 'موقع'}</span>
-        `;
+        div.innerHTML = `<div><div class="s-title">${m.name}</div><div class="s-sub">${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}</div></div><span class="s-tag">${m.cat}</span>`;
         div.onclick = () => {
           searchResults.classList.remove('open');
-          map.flyTo({ center: [m.lng, m.lat], zoom: 18.5, pitch: is3D ? 50 : 0 });
+          map.flyTo({ center: [m.lng, m.lat], zoom: 18, pitch: is3D ? 52 : 0 });
           showPlaceCard(m, { lat: m.lat, lng: m.lng });
         };
         searchResults.appendChild(div);
@@ -1107,21 +822,13 @@
       searchResults.classList.add('open');
     });
 
-    clearBtn.onclick = () => {
-      searchInput.value = '';
-      clearBtn.style.display = 'none';
-      searchResults.classList.remove('open');
-    };
+    clearBtn.onclick = () => { searchInput.value = ''; clearBtn.style.display = 'none'; searchResults.classList.remove('open'); };
 
-    // Quick Controls
-    document.getElementById('btn-toggle-3d').onclick = function() {
-      is3D = !is3D;
-      map.easeTo({ pitch: is3D ? 48 : 0, bearing: is3D ? -12 : 0, duration: 600 });
-    };
+    document.getElementById('btn-toggle-3d').onclick = () => { is3D = !is3D; map.easeTo({ pitch: is3D ? 52 : 0, bearing: is3D ? -15 : 0, duration: 500 }); };
     document.getElementById('btn-z19').onclick = () => map.easeTo({ zoom: 19, pitch: is3D ? 55 : 0 });
     document.getElementById('btn-plus').onclick = () => map.zoomIn();
     document.getElementById('btn-minus').onclick = () => map.zoomOut();
-    document.getElementById('btn-home').onclick = () => map.flyTo({ center: [44.1680, 13.9685], zoom: 15.8, pitch: 48, bearing: -12 });
+    document.getElementById('btn-home').onclick = () => map.flyTo({ center: [44.1680, 13.9685], zoom: 16.5, pitch: 52, bearing: -15 });
     document.getElementById('pc-close').onclick = () => document.getElementById('place-card').classList.remove('open');
     document.getElementById('btn-open-drawer').onclick = () => document.getElementById('drawer').classList.add('open');
     document.getElementById('btn-close-drawer').onclick = () => document.getElementById('drawer').classList.remove('open');
@@ -1135,32 +842,26 @@
       const v = this.checked ? 'visible' : 'none';
       map.setLayoutProperty('roads-casing', 'visibility', v);
       map.setLayoutProperty('roads-fill', 'visibility', v);
-      map.setLayoutProperty('road-labels', 'visibility', v);
     };
-    document.getElementById('chk-pois').onchange = function() {
+    document.getElementById('chk-labels').onchange = function() {
       const v = this.checked ? 'visible' : 'none';
-      map.setLayoutProperty('ocr-pois-dots', 'visibility', v);
-      map.setLayoutProperty('ocr-pois-labels', 'visibility', v);
-      map.setLayoutProperty('ov-places-dots', 'visibility', v);
-      map.setLayoutProperty('ov-places-labels', 'visibility', v);
+      ['road-labels', 'district-labels', 'settlement-labels', 'ov-places-dots', 'ov-places-labels'].forEach(l => map.setLayoutProperty(l, 'visibility', v));
     };
 
     document.getElementById('btn-gps').onclick = () => {
       if (!navigator.geolocation) return alert('GPS غير مدعوم');
       navigator.geolocation.getCurrentPosition(p => {
-        map.flyTo({ center: [p.coords.longitude, p.coords.latitude], zoom: 18, pitch: is3D ? 48 : 0 });
+        map.flyTo({ center: [p.coords.longitude, p.coords.latitude], zoom: 18, pitch: is3D ? 52 : 0 });
       });
     };
 
-    // Populate 29 Regions Drawer
     const rList = document.getElementById('region-list');
     REGIONS.forEach(r => {
       const item = document.createElement('div');
       item.className = 'region-item';
       item.innerHTML = `<div><h4>${r.name_ar}</h4><p>${r.name_en} — ${r.code}</p></div><span class="r-badge">Z${r.zoom}</span>`;
       item.onclick = () => {
-        loadShard(r.code);
-        map.flyTo({ center: [(r.west + r.east)/2, (r.south + r.north)/2], zoom: r.zoom, pitch: is3D ? 48 : 0 });
+        map.flyTo({ center: [r.lng, r.lat], zoom: r.zoom, pitch: is3D ? 52 : 0 });
         if (window.innerWidth < 640) document.getElementById('drawer').classList.remove('open');
       };
       rList.appendChild(item);

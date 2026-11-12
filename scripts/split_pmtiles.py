@@ -137,8 +137,8 @@ with open(src_path, 'rb') as f:
 
         struct.pack_into('<8Q', new_hdr, 8, r_off, r_len, m_off, m_len, l_off_abs, l_len_abs, t_off_abs, t_len_abs)
         struct.pack_into('<3Q', new_hdr, 72, len(new_entries), len(new_entries), len(seen_src_offsets))
-        new_hdr[97] = min_z
-        new_hdr[98] = max_z
+        new_hdr[100] = min_z
+        new_hdr[101] = max_z
 
         with open(out_path, 'wb') as out_f:
             out_f.write(new_hdr)
