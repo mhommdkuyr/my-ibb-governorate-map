@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>خريطتي لمحافظة إب — الخريطة التفاعلية المتطورة الشاملة (Z10–Z20)</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --bg-dark: #0f172a;
+      --bg-glass: rgba(15, 23, 42, 0.92);
+      --bg-card: #1e293b;
+      --border: rgba(148, 163, 184, 0.22);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --shadow: 0 10px 28px -5px rgba(0, 0, 0, 0.55);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg-dark);
+      color: var(--text);
+      user-select: none;
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      background: #0b1120;
+    }
+
+    /* Top Search & Brand Bar */
+    .top-container {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      left: 12px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .search-box-wrap {
+      pointer-events: auto;
+      width: 410px;
+      max-width: 100%;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      padding: 5px 10px;
+      border-radius: 9px;
+      font-weight: 800;
+      font-size: 0.84rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .search-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 6px 4px;
+    }
+
+    .search-bar input::placeholder { color: var(--text-muted); }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 8px;
+      transition: all 0.18s;
+    }
+    .icon-btn:hover { color: var(--primary); background: rgba(255,255,255,0.06); }
+
+    /* Search Autocomplete Dropdown */
+    .search-results {
+      max-height: 310px;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    .search-results.open { display: block; }
+    .search-item {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .search-item:hover { background: rgba(16, 185, 129, 0.12); }
+    .search-item .s-title { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+    .search-item .s-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .search-item .s-tag {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--bg-card);
+      color: #6ee7b7;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    /* Category Filter Pills (Google Maps Horizontal Bar) */
+    .category-pills {
+      pointer-events: auto;
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding: 2px 2px 6px 2px;
+      scrollbar-width: none;
+    }
+    .category-pills::-webkit-scrollbar { display: none; }
+
+    .cat-pill {
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s;
+    }
+    .cat-pill:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .cat-pill.active {
+      background: var(--primary);
+      color: #022c22;
+      border-color: var(--primary);
+      font-weight: 800;
+    }
+
+    /* Live Stats Counter Pill */
+    .stats-pill {
+      pointer-events: auto;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    .stats-pill strong { color: #34d399; }
+
+    /* Bottom-Left Map Mode Switcher (Unburned Satellite vs Clean White vs Google Hybrid Comparison) */
+    .mode-switcher {
+      position: absolute;
+      bottom: 32px;
+      left: 12px;
+      z-index: 1000;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-width: calc(100vw - 80px);
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 7px 11px;
+      border-radius: 9px;
+      font-size: 0.79rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s;
+    }
+    .mode-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .mode-btn.active {
+      background: var(--primary);
+      color: #022c22;
+      border-color: var(--primary);
+    }
+
+    /* Right Floating Quick Controls */
+    .quick-controls {
+      position: absolute;
+      bottom: 32px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .ctrl-btn {
+      width: 42px;
+      height: 42px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      font-size: 0.98rem;
+      transition: all 0.18s;
+    }
+    .ctrl-btn:hover { background: var(--primary); color: #022c22; border-color: var(--primary); }
+    .ctrl-btn.active-toggle { background: rgba(16, 185, 129, 0.22); color: #34d399; border-color: #10b981; }
+    .ctrl-btn.z19-badge { background: #f59e0b; color: #451a03; font-weight: 900; font-size: 0.8rem; border-color: #f59e0b; }
+
+    /* Bottom Status Bar */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 25px;
+      background: rgba(2, 6, 23, 0.92);
+      border-top: 1px solid var(--border);
+      z-index: 999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    /* Sidebar Drawer (29 Sectors + Vector Layers Control) */
+    .drawer {
+      position: absolute;
+      top: 0;
+      right: -395px;
+      width: 375px;
+      max-width: 88vw;
+      height: 100vh;
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px);
+      border-left: 1px solid var(--border);
+      z-index: 1100;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.65);
+      display: flex;
+      flex-direction: column;
+      transition: right 0.28s ease;
+    }
+    .drawer.open { right: 0; }
+
+    .drawer-header {
+      padding: 15px 16px;
+      background: #020617;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .drawer-header h3 { font-size: 1rem; color: #34d399; display: flex; align-items: center; gap: 8px; }
+
+    .drawer-section {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.83rem;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+    .toggle-row input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+
+    .btn-load-all {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 9px;
+      border: 1px solid var(--primary);
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-load-all:hover { background: var(--primary); color: #022c22; }
+
+    .region-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .region-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 9px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .region-item:hover { border-color: var(--primary); background: #263349; }
+    .region-item h4 { font-size: 0.88rem; color: var(--text); }
+    .region-item p { font-size: 0.73rem; color: var(--text-muted); margin-top: 2px; }
+    .r-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+    }
+
+    /* Place Details Floating Card (Google Maps Inspector Card) */
+    .place-card {
+      position: absolute;
+      bottom: 88px;
+      right: 64px;
+      width: 345px;
+      max-width: calc(100vw - 80px);
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      z-index: 1050;
+      padding: 14px;
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .place-card.open { display: flex; }
+    .pc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .pc-title { font-size: 1.02rem; font-weight: 800; color: #34d399; line-height: 1.35; }
+    .pc-cat {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #7dd3fc;
+      width: fit-content;
+    }
+    .pc-meta {
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      background: rgba(30, 41, 59, 0.75);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border-right: 3px solid var(--primary);
+      line-height: 1.5;
+    }
+    .pc-coords {
+      font-family: monospace;
+      font-size: 0.77rem;
+      background: #020617;
+      padding: 6px 9px;
+      border-radius: 6px;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pc-actions { display: flex; gap: 6px; }
+    .pc-btn {
+      flex: 1;
+      padding: 7px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .pc-btn:hover { background: var(--primary); color: #022c22; border-color: var(--primary); }
+    .pc-btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .pc-btn.primary:hover { background: #1d4ed8; }
+
+    @media (max-width: 640px) {
+      .stats-pill { display: none; }
+      .place-card { right: 12px; left: 12px; width: auto; bottom: 84px; }
+      .mode-btn span { font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Map Canvas -->
+  <div id="map"></div>
+
+  <!-- Top Search & Category Filter Bar -->
+  <div class="top-container">
+    <div class="top-row">
+      <div class="search-box-wrap">
+        <div class="search-bar">
+          <button class="icon-btn" id="btn-open-drawer" title="القائمة والتحكم بطبقات الخريطة والمديريات الـ 29">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="brand-badge" id="btn-home" title="خريطتي لمحافظة إب — العودة للمركز">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span>خريطتي لمحافظة إب</span>
+          </div>
+          <input type="text" id="search-input" placeholder="ابحث في 57,556 محل، قرية، مسجد، مستشفى، شارع..." autocomplete="off" />
+          <button class="icon-btn" id="btn-clear-search" title="مسح البحث" style="display:none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="search-results" id="search-results"></div>
+      </div>
+
+      <div class="stats-pill" id="stats-pill">
+        <span><i class="fa-solid fa-database"></i> محمّل بالذاكرة: <strong id="loaded-count">...</strong></span>
+        <span>|</span>
+        <span>الظاهر بالشاشة: <strong id="visible-count">0</strong></span>
+      </div>
+    </div>
+
+    <!-- Google Maps Style Category Pills -->
+    <div class="category-pills" id="category-pills">
+      <button class="cat-pill active" data-cat="all"><i class="fa-solid fa-layer-group"></i> الكل (تلقائي ذكي)</button>
+      <button class="cat-pill" data-cat="hospital"><i class="fa-solid fa-hospital" style="color:#ef4444;"></i> مستشفيات وعيادات</button>
+      <button class="cat-pill" data-cat="pharmacy"><i class="fa-solid fa-prescription-bottle-medical" style="color:#f43f5e;"></i> صيدليات ومختبرات</button>
+      <button class="cat-pill" data-cat="restaurant"><i class="fa-solid fa-utensils" style="color:#f97316;"></i> مطاعم وبوفيهات</button>
+      <button class="cat-pill" data-cat="cafe"><i class="fa-solid fa-mug-hot" style="color:#d97706;"></i> مقاهي وكافيهات</button>
+      <button class="cat-pill" data-cat="hotel"><i class="fa-solid fa-hotel" style="color:#ec4899;"></i> فنادق ومنتجعات</button>
+      <button class="cat-pill" data-cat="supermarket"><i class="fa-solid fa-cart-shopping" style="color:#a855f7;"></i> سوبرماركت ومولات</button>
+      <button class="cat-pill" data-cat="bank"><i class="fa-solid fa-building-columns" style="color:#3b82f6;"></i> بنوك وصرافة</button>
+      <button class="cat-pill" data-cat="mosque"><i class="fa-solid fa-mosque" style="color:#10b981;"></i> مساجد وجوامع</button>
+      <button class="cat-pill" data-cat="school"><i class="fa-solid fa-Graduation-cap" style="color:#6366f1;"></i> مدارس وجامعات</button>
+      <button class="cat-pill" data-cat="electronics"><i class="fa-solid fa-mobile-screen" style="color:#06b6d4;"></i> جوالات وإلكترونيات</button>
+      <button class="cat-pill" data-cat="gas"><i class="fa-solid fa-gas-pump" style="color:#eab308;"></i> محطات وقود وورش</button>
+      <button class="cat-pill" data-cat="park"><i class="fa-solid fa-tree" style="color:#22c55e;"></i> حدائق ومعالم</button>
+      <button class="cat-pill" data-cat="settlement"><i class="fa-solid fa-house-chimney-window" style="color:#38bdf8;"></i> القرى والعُزل (12,788)</button>
+    </div>
+  </div>
+
+  <!-- Bottom-Left Base Map & Comparison Switcher -->
+  <div class="mode-switcher">
+    <button class="mode-btn active" data-mode="clean_sat" title="صور أقمار صناعية نقية بدون كتابة مطبوعة + أسماء وأيقونات متجهة ديناميكية">
+      <i class="fa-solid fa-satellite"></i>
+      <span>قمر صناعي نقي + أسماء ديناميكية</span>
+    </button>
+    <button class="mode-btn" data-mode="clean_white" title="خريطة بيضاء نقية + أسماء وأيقونات متجهة ديناميكية">
+      <i class="fa-regular fa-map"></i>
+      <span>خريطة بيضاء + أسماء ديناميكية</span>
+    </button>
+    <button class="mode-btn" data-mode="google_hybrid" title="وضع المطابقة والمقارنة المباشرة مع خريطة Google Hybrid الأصلية">
+      <i class="fa-solid fa-clone"></i>
+      <span>مطابقة Google Hybrid</span>
+    </button>
+    <button class="mode-btn" data-mode="google_roadmap" title="وضع المطابقة مع خريطة طرق Google البيضاء">
+      <i class="fa-solid fa-road"></i>
+      <span>مطابقة Google Roadmap</span>
+    </button>
+    <button class="mode-btn" data-mode="terrain" title="خريطة التضاريس الجبلية لمحافظة إب">
+      <i class="fa-solid fa-mountain-sun"></i>
+      <span>تضاريس</span>
+    </button>
+  </div>
+
+  <!-- Right Quick Controls -->
+  <div class="quick-controls">
+    <button class="ctrl-btn z19-badge" id="btn-z19" title="قفز فوري إلى الزوم 19 (أعلى دقة تفصيلية للمحلات والإحداثيات)">Z19</button>
+    <button class="ctrl-btn" id="btn-plus" title="تكبير"><i class="fa-solid fa-plus"></i></button>
+    <button class="ctrl-btn" id="btn-minus" title="تصغير"><i class="fa-solid fa-minus"></i></button>
+    <button class="ctrl-btn active-toggle" id="btn-toggle-labels" title="إظهار / إخفاء الأسماء والأيقونات الديناميكية"><i class="fa-solid fa-tags"></i></button>
+    <button class="ctrl-btn" id="btn-gps" title="موقعي الحالي عبر GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
+  </div>
+
+  <!-- Place Details Inspector Card -->
+  <div class="place-card" id="place-card">
+    <div class="pc-header">
+      <div>
+        <div class="pc-title" id="pc-title">—</div>
+        <div class="pc-cat" id="pc-cat"></div>
+      </div>
+      <button class="icon-btn" id="pc-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="pc-meta" id="pc-meta"></div>
+    <div class="pc-coords">
+      <span id="pc-coords-txt">13.966700, 44.166700</span>
+      <span id="pc-pluscode" style="color:#34d399; font-weight:700;">—</span>
+    </div>
+    <div class="pc-actions">
+      <button class="pc-btn" id="pc-copy"><i class="fa-regular fa-copy"></i> نسخ الإحداثيات</button>
+      <a class="pc-btn primary" id="pc-gmaps" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-diamond-turn-right"></i> فتح في Google</a>
+    </div>
+  </div>
+
+  <!-- Sidebar Drawer -->
+  <aside class="drawer" id="drawer">
+    <div class="drawer-header">
+      <h3><i class="fa-solid fa-Sliders"></i> خريطتي لمحافظة إب (29 قطاعاً)</h3>
+      <button class="icon-btn" id="btn-close-drawer"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="drawer-section">
+      <label class="toggle-row">
+        <span>إظهار الأسماء والأيقونات الديناميكية (Vector)</span>
+        <input type="checkbox" id="chk-dynamic-labels" checked />
+      </label>
+      <label class="toggle-row">
+        <span>إظهار كافة المحلات الفرعية في Z18–Z20</span>
+        <input type="checkbox" id="chk-all-shops" checked />
+      </label>
+      <label class="toggle-row">
+        <span>إظهار حدود المديريات والقطاعات الـ 29</span>
+        <input type="checkbox" id="chk-bboxes" checked />
+      </label>
+      <button class="btn-load-all" id="btn-load-all-shards">
+        <i class="fa-solid fa-bolt"></i>
+        <span>تحميل كافة الـ 57,556 موقعاً في الذاكرة الآن</span>
+      </button>
+    </div>
+    <div class="region-list" id="region-list"></div>
+  </aside>
+
+  <!-- Bottom Status Bar -->
+  <div class="bottom-bar">
+    <span id="status-coords">خط العرض: 13.966700° | خط الطول: 44.166700° | Plus Code: 7J3XX588+MM</span>
+    <span id="status-zoom">الزوم: <strong style="color:#34d399;">12</strong> | نمط العرض: أسماء متجهة ديناميكية غير مطبوعة</span>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Register Service Worker for offline/weak-internet speed
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    // Plus Code Generator (Open Location Code 10-char)
+    const OLC_CHARS = '23456789CFGHJMPQRVWX';
+    function encodePlusCode(lat, lon) {
+      lat = Math.min(Math.max(lat + 90.0, 0.0), 179.999999);
+      lon = Math.min(Math.max(lon + 180.0, 0.0), 359.999999);
+      let latVal = Math.round(lat * 8000);
+      let lonVal = Math.round(lon * 8000);
+      const latD = [], lonD = [];
+      for (let i = 0; i < 5; i++) {
+        latD.push(OLC_CHARS[latVal % 20]);
+        lonD.push(OLC_CHARS[lonVal % 20]);
+        latVal = Math.floor(latVal / 20);
+        lonVal = Math.floor(lonVal / 20);
+      }
+      latD.reverse(); lonD.reverse();
+      let res = '';
+      for (let i = 0; i < 5; i++) {
+        res += latD[i] + lonD[i];
+        if (i === 3) res += '+';
+      }
+      return res;
+    }
+
+    // Category Styling (Google Maps Palette)
+    const CAT_STYLE = {
+      district:    { color: '#f59e0b', bg: '#451a03', label: 'مديرية رئيسية', icon: '🏛️', minZ: 9,  prio: 100 },
+      city:        { color: '#10b981', bg: '#064e3b', label: 'مدينة رئيسية', icon: '🏙️', minZ: 10, prio: 95 },
+      settlement:  { color: '#38bdf8', bg: '#0c4a6e', label: 'قرية / تجمع سكني', icon: '🏘️', minZ: 14, prio: 60 },
+      hospital:    { color: '#ef4444', bg: '#7f1d1d', label: 'مستشفى / مركز طبي', icon: '🏥', minZ: 13, prio: 90 },
+      clinic:      { color: '#f87171', bg: '#7f1d1d', label: 'عيادة / طب أسنان', icon: '🩺', minZ: 16, prio: 75 },
+      pharmacy:    { color: '#fb7185', bg: '#881337', label: 'صيدلية / مختبر', icon: '💊', minZ: 16, prio: 76 },
+      restaurant:  { color: '#f97316', bg: '#7c2d12', label: 'مطعم / بوفيه', icon: '🍽️', minZ: 15, prio: 82 },
+      cafe:        { color: '#f59e0b', bg: '#78350f', label: 'مقهى / كافيه', icon: '☕', minZ: 16, prio: 78 },
+      bakery:      { color: '#fb923c', bg: '#7c2d12', label: 'مخبز / حلويات', icon: '🥖', minZ: 16, prio: 74 },
+      hotel:       { color: '#ec4899', bg: '#831843', label: 'فندق / منتجع سياحي', icon: '🏨', minZ: 14, prio: 85 },
+      supermarket: { color: '#a855f7', bg: '#581c87', label: 'سوبرماركت / مول', icon: '🛒', minZ: 15, prio: 80 },
+      clothing:    { color: '#c084fc', bg: '#581c87', label: 'ملابس وأزياء', icon: '👔', minZ: 17, prio: 70 },
+      electronics: { color: '#06b6d4', bg: '#164e63', label: 'جوالات وإلكترونيات', icon: '📱', minZ: 16, prio: 75 },
+      furniture:   { color: '#a16207', bg: '#422006', label: 'أثاث ومفروشات', icon: '🛋️', minZ: 17, prio: 70 },
+      jewelry:     { color: '#facc15', bg: '#713f12', label: 'ذهب ومجوهرات', icon: '💎', minZ: 16, prio: 77 },
+      bookstore:   { color: '#818cf8', bg: '#312e81', label: 'مكتبة وقرطاسية', icon: '📚', minZ: 16, prio: 74 },
+      salon:       { color: '#f472b6', bg: '#831843', label: 'صالون حلاقة وتجميل', icon: '✂️', minZ: 17, prio: 68 },
+      bank:        { color: '#3b82f6', bg: '#1e3a8a', label: 'بنك / صرافة / ATM', icon: '🏦', minZ: 15, prio: 84 },
+      company:     { color: '#60a5fa', bg: '#1e3a8a', label: 'شركة / مكتب تجاري', icon: '🏢', minZ: 16, prio: 72 },
+      gas:         { color: '#eab308', bg: '#713f12', label: 'محطة وقود وغاز', icon: '⛽', minZ: 14, prio: 82 },
+      auto:        { color: '#94a3b8', bg: '#334155', label: 'ورشة وخدمات سيارات', icon: '🔧', minZ: 17, prio: 68 },
+      university:  { color: '#6366f1', bg: '#312e81', label: 'جامعة / كلية / معهد', icon: '🎓', minZ: 13, prio: 88 },
+      school:      { color: '#818cf8', bg: '#312e81', label: 'مدرسة تعليمية', icon: '🏫', minZ: 15, prio: 79 },
+      gym:         { color: '#2dd4bf', bg: '#134e4a', label: 'نادي رياضي / قاعة', icon: '🏆', minZ: 16, prio: 74 },
+      mosque:      { color: '#10b981', bg: '#064e3b', label: 'مسجد / جامع', icon: '🕌', minZ: 15, prio: 80 },
+      park:        { color: '#22c55e', bg: '#14532d', label: 'حديقة / معلم طبيعي', icon: '🌳', minZ: 14, prio: 82 },
+      street:      { color: '#cbd5e1', bg: '#1e293b', label: 'شارع / حي / مبنى', icon: '🛣️', minZ: 16, prio: 65 },
+      shop:        { color: '#38bdf8', bg: '#0f172a', label: 'محل / منشأة محلية', icon: '🏪', minZ: 18, prio: 45 }
+    };
+
+    // 29 Regions Bounding Metadata
+    const REGIONS = [
+      { code: "00_Ibb_Governorate_Full", name_ar: "محافظة إب كاملة", name_en: "Ibb Governorate Full", tier: "governorate", north: 14.4500, south: 13.6500, east: 44.8500, west: 43.5500, zooms: "Z12–Z15", targetZoom: 12 },
+      { code: "U01_Ibb_City", name_ar: "مدينة إب", name_en: "Ibb City", tier: "urban", north: 14.0150, south: 13.9250, east: 44.2150, west: 44.1400, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U02_Al_Udayn_City", name_ar: "مدينة العدين", name_en: "Al Udayn City", tier: "urban", north: 13.9920, south: 13.9480, east: 44.0150, west: 43.9650, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U03_Al_Qaidah_City", name_ar: "مدينة القاعدة", name_en: "Al Qaidah City", tier: "urban", north: 13.7820, south: 13.7320, east: 44.1620, west: 44.1150, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U04_Yarim_City", name_ar: "مدينة يريم", name_en: "Yarim City", tier: "urban", north: 14.3220, south: 14.2720, east: 44.4020, west: 44.3500, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U05_Dhi_As_Sufal_City", name_ar: "مدينة ذي السفال", name_en: "Dhi As Sufal City", tier: "urban", north: 13.8550, south: 13.8150, east: 44.1320, west: 44.0880, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U06_Al_Makhadir_City", name_ar: "مدينة المخادر", name_en: "Al Makhadir City", tier: "urban", north: 14.1320, south: 14.0900, east: 44.2200, west: 44.1780, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U07_An_Nadirah_City", name_ar: "مدينة النادرة", name_en: "An Nadirah City", tier: "urban", north: 14.1220, south: 14.0810, east: 44.5020, west: 44.4570, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "U08_As_Saddah_City", name_ar: "مدينة السدة", name_en: "As Saddah City", tier: "urban", north: 14.1860, south: 14.1460, east: 44.3980, west: 44.3520, zooms: "Z17–Z19", targetZoom: 17 },
+      { code: "D01_Ibb", name_ar: "مديرية إب (ريف إب)", name_en: "Ibb District", tier: "district", north: 14.0067, south: 13.9267, east: 44.2283, west: 44.1383, zooms: "Z15–Z19", targetZoom: 16 },
+      { code: "D02_Al_Dhihar", name_ar: "مديرية الظهار", name_en: "Al Dhihar District", tier: "district", north: 14.0039, south: 13.9539, east: 44.1825, west: 44.1225, zooms: "Z15–Z19", targetZoom: 16 },
+      { code: "D03_Al_Mashannah", name_ar: "مديرية المشنة", name_en: "Al Mashannah District", tier: "district", north: 13.9821, south: 13.9321, east: 44.2115, west: 44.1515, zooms: "Z15–Z19", targetZoom: 16 },
+      { code: "D04_Jiblah", name_ar: "مديرية جبلة", name_en: "Jiblah District", tier: "district", north: 13.9591, south: 13.8891, east: 44.1859, west: 44.1059, zooms: "Z15–Z19", targetZoom: 16 },
+      { code: "D05_Badan", name_ar: "مديرية بعدان", name_en: "Ba'dan District", tier: "district", north: 14.0339, south: 13.9439, east: 44.3731, west: 44.2731, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D06_As_Sabrah", name_ar: "مديرية السبرة", name_en: "As Sabrah District", tier: "district", north: 13.9610, south: 13.8710, east: 44.3740, west: 44.2740, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D07_As_Sayyani", name_ar: "مديرية السياني", name_en: "As Sayyani District", tier: "district", north: 13.8539, south: 13.7739, east: 44.2063, west: 44.1163, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D08_Dhi_As_Sufal", name_ar: "مديرية ذي السفال", name_en: "Dhi As Sufal District", tier: "district", north: 13.8805, south: 13.7905, east: 44.1603, west: 44.0603, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D09_Mudhaykhirah", name_ar: "مديرية مذيخرة", name_en: "Mudhaykhirah District", tier: "district", north: 13.9111, south: 13.8211, east: 44.0189, west: 43.9189, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D10_Al_Udayn", name_ar: "مديرية العدين", name_en: "Al Udayn District", tier: "district", north: 14.0250, south: 13.9150, east: 44.0500, west: 43.9300, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D11_Far_Al_Udayn", name_ar: "مديرية فرع العدين", name_en: "Far Al Udayn District", tier: "district", north: 13.9597, south: 13.8397, east: 43.8731, west: 43.7431, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D12_Hazm_Al_Udayn", name_ar: "مديرية حزم العدين", name_en: "Hazm Al Udayn District", tier: "district", north: 14.1696, south: 14.0596, east: 43.9645, west: 43.8445, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D13_Hubaysh", name_ar: "مديرية حبيش", name_en: "Hubaysh District", tier: "district", north: 14.1611, south: 14.0711, east: 44.1319, west: 44.0319, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D14_Al_Makhadir", name_ar: "مديرية المخادر", name_en: "Al Makhadir District", tier: "district", north: 14.1561, south: 14.0661, east: 44.2493, west: 44.1493, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D15_Al_Qafr", name_ar: "مديرية القفر", name_en: "Al Qafr District", tier: "district", north: 14.3200, south: 14.1800, east: 44.1600, west: 44.0000, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D16_Yarim", name_ar: "مديرية يريم", name_en: "Yarim District", tier: "district", north: 14.3615, south: 14.2315, east: 44.4457, west: 44.3057, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D17_Ar_Radmah", name_ar: "مديرية الرضمة", name_en: "Ar Radmah District", tier: "district", north: 14.2550, south: 14.1450, east: 44.6500, west: 44.5300, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D18_As_Saddah", name_ar: "مديرية السدة", name_en: "As Saddah District", tier: "district", north: 14.2111, south: 14.1211, east: 44.4251, west: 44.3251, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D19_An_Nadirah", name_ar: "مديرية النادرة", name_en: "An Nadirah District", tier: "district", north: 14.1515, south: 14.0515, east: 44.5345, west: 44.4245, zooms: "Z15–Z19", targetZoom: 15 },
+      { code: "D20_Ash_Shair", name_ar: "مديرية الشعر", name_en: "Ash Sha'ir District", tier: "district", north: 14.0539, south: 13.9739, east: 44.4415, west: 44.3515, zooms: "Z15–Z19", targetZoom: 15 }
+    ];
+
+    // Initialize Map
+    const map = L.map('map', {
+      center: [13.9667, 44.1667],
+      zoom: 13,
+      minZoom: 8,
+      maxZoom: 20,
+      zoomControl: false,
+      preferCanvas: true
+    });
+
+    const gOpts = { subdomains: ['0','1','2','3'], maxNativeZoom: 19, maxZoom: 20 };
+    const baseLayers = {
+      // 1. Pure Satellite WITHOUT burned labels (Labels are rendered dynamically by our Vector Engine!)
+      clean_sat: L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', gOpts),
+      // 2. Clean White Map WITHOUT burned POI clutter (CartoDB Positron No-Labels)
+      clean_white: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { maxNativeZoom: 19, maxZoom: 20 }),
+      // 3. Google Hybrid for Side-by-Side Verification
+      google_hybrid: L.layerGroup([
+        L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', gOpts),
+        L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&hl=ar&gl=YE&x={x}&y={y}&z={z}', gOpts)
+      ]),
+      // 4. Google White Roadmap for Verification
+      google_roadmap: L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&hl=ar&gl=YE&x={x}&y={y}&z={z}', gOpts),
+      // 5. Terrain Map
+      terrain: L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&hl=ar&gl=YE&x={x}&y={y}&z={z}', gOpts)
+    };
+
+    let currentBaseMode = 'clean_sat';
+    let activeBaseLayer = baseLayers.clean_sat.addTo(map);
+    const bboxesLayer = L.layerGroup().addTo(map);
+
+    // Master In-Memory Spatial Store
+    // Unified item format: { id, name, name_en, cat, lat, lng, minZ, prio, reg, plus, phone, web, conf }
+    const ALL_FEATURES = [];
+    const LOADED_SHARDS = new Set();
+    const SHARD_LOADING = new Set();
+    let activeCategoryFilter = 'all';
+    let showDynamicLabels = true;
+    let showAllShopsZ18 = true;
+    let renderedHitBoxes = []; // For click/hover detection on the dynamic vector canvas!
+    let pinMarker = null;
+
+    function addFeature(f) {
+      ALL_FEATURES.push(f);
+    }
+
+    // High-DPI Collision-Free Vector Label & Symbol Canvas Overlay (Google Maps Style)
+    const DynamicVectorOverlay = L.Layer.extend({
+      onAdd: function(map) {
+        this._map = map;
+        this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+        this._canvas.style.position = 'absolute';
+        this._canvas.style.top = '0';
+        this._canvas.style.left = '0';
+        this._canvas.style.pointerEvents = 'none';
+        this._canvas.style.zIndex = '650';
+        map.getPanes().overlayPane.appendChild(this._canvas);
+        map.on('moveend zoomend resize', this._redraw, this);
+        this._redraw();
+      },
+      onRemove: function(map) {
+        L.DomUtil.remove(this._canvas);
+        map.off('moveend zoomend resize', this._redraw, this);
+      },
+      _redraw: function() {
+        if (!this._map) return;
+        const size = this._map.getSize();
+        const dpr = window.devicePixelRatio || 1;
+        this._canvas.width = size.x * dpr;
+        this._canvas.height = size.y * dpr;
+        this._canvas.style.width = size.x + 'px';
+        this._canvas.style.height = size.y + 'px';
+
+        const topLeft = this._map.containerPointToLayerPoint([0, 0]);
+        L.DomUtil.setPosition(this._canvas, topLeft);
+
+        const ctx = this._canvas.getContext('2d');
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, size.x, size.y);
+
+        renderedHitBoxes = [];
+        if (!showDynamicLabels) {
+          document.getElementById('visible-count').textContent = '0';
+          ctx.restore();
+          return;
+        }
+
+        const zoom = this._map.getZoom();
+        const bounds = this._map.getBounds().pad(0.08);
+        const south = bounds.getSouth(), north = bounds.getNorth();
+        const west = bounds.getWest(), east = bounds.getEast();
+
+        // Filter features inside current viewport & zoom threshold
+        const candidates = [];
+        for (let i = 0; i < ALL_FEATURES.length; i++) {
+          const f = ALL_FEATURES[i];
+          if (f.lat < south || f.lat > north || f.lng < west || f.lng > east) continue;
+          if (activeCategoryFilter !== 'all') {
+            if (activeCategoryFilter === 'hospital' && f.cat !== 'hospital' && f.cat !== 'clinic') continue;
+            else if (activeCategoryFilter === 'school' && f.cat !== 'school' && f.cat !== 'university') continue;
+            else if (activeCategoryFilter === 'gas' && f.cat !== 'gas' && f.cat !== 'auto') continue;
+            else if (activeCategoryFilter !== 'hospital' && activeCategoryFilter !== 'school' && activeCategoryFilter !== 'gas' && f.cat !== activeCategoryFilter) continue;
+          } else {
+            if (f.cat === 'shop' && !showAllShopsZ18) continue;
+            if (zoom < f.minZ) continue;
+          }
+          const pt = this._map.latLngToContainerPoint([f.lat, f.lng]);
+          candidates.push({ f, x: pt.x, y: pt.y });
+        }
+
+        // Sort by priority descending so major landmarks/hospitals/mosques win label space first
+        candidates.sort((a, b) => b.f.prio - a.f.prio);
+
+        const occupiedBoxes = [];
+        function hasCollision(x0, y0, x1, y1) {
+          for (let i = 0; i < occupiedBoxes.length; i++) {
+            const b = occupiedBoxes[i];
+            if (!(x1 < b[0] || x0 > b[2] || y1 < b[1] || y0 > b[3])) return true;
+          }
+          return false;
+        }
+
+        let drawnCount = 0;
+        const maxLabelsOnScreen = zoom >= 19 ? 420 : (zoom >= 17 ? 260 : 160);
+        const isDarkBg = (currentBaseMode === 'clean_sat' || currentBaseMode === 'google_hybrid');
+
+        for (let i = 0; i < candidates.length; i++) {
+          if (drawnCount >= maxLabelsOnScreen) break;
+          const { f, x, y } = candidates[i];
+          const st = CAT_STYLE[f.cat] || CAT_STYLE.shop;
+
+          // Measure text width
+          const fontSize = f.cat === 'district' ? 13 : (f.cat === 'city' ? 12.5 : (zoom >= 18 ? 11.5 : 10.5));
+          ctx.font = `700 ${fontSize}px "Segoe UI", Tahoma, sans-serif`;
+          const textWidth = Math.min(ctx.measureText(f.name).width, 190);
+          const boxW = textWidth + 28;
+          const boxH = fontSize + 10;
+
+          const x0 = x - boxW / 2;
+          const y0 = y - boxH / 2;
+          const x1 = x + boxW / 2;
+          const y1 = y + boxH / 2;
+
+          if (!hasCollision(x0 - 4, y0 - 3, x1 + 4, y1 + 3)) {
+            occupiedBoxes.push([x0, y0, x1, y1]);
+            renderedHitBoxes.push({ x0, y0, x1, y1, f });
+            drawnCount++;
+
+            // Draw Icon Dot / Badge
+            ctx.beginPath();
+            ctx.arc(x + textWidth / 2 + 8, y, 7.5, 0, Math.PI * 2);
+            ctx.fillStyle = st.color;
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            // Draw Crisp Halo + Text (Google Maps Vector Label Style — Not printed on image!)
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 3.6;
+            ctx.strokeStyle = isDarkBg ? 'rgba(2, 6, 23, 0.92)' : 'rgba(255, 255, 255, 0.96)';
+            ctx.strokeText(f.name, x - 4, y);
+
+            ctx.fillStyle = isDarkBg ? '#f8fafc' : (f.cat === 'shop' ? '#1e293b' : st.bg);
+            if (isDarkBg && f.cat !== 'shop' && f.cat !== 'street') {
+              ctx.fillStyle = st.color;
+            }
+            ctx.fillText(f.name, x - 4, y);
+          } else if (zoom >= 18 && drawnCount < maxLabelsOnScreen * 1.4) {
+            // Draw compact dot when text collides at high zoom so user can still click every shop!
+            if (!hasCollision(x - 5, y - 5, x + 5, y + 5)) {
+              occupiedBoxes.push([x - 5, y - 5, x + 5, y + 5]);
+              renderedHitBoxes.push({ x0: x - 7, y0: y - 7, x1: x + 7, y1: y + 7, f });
+              ctx.beginPath();
+              ctx.arc(x, y, 4.2, 0, Math.PI * 2);
+              ctx.fillStyle = st.color;
+              ctx.fill();
+              ctx.lineWidth = 1.2;
+              ctx.strokeStyle = '#ffffff';
+              ctx.stroke();
+              drawnCount++;
+            }
+          }
+        }
+
+        document.getElementById('visible-count').textContent = drawnCount.toLocaleString();
+        document.getElementById('loaded-count').textContent = ALL_FEATURES.length.toLocaleString();
+        ctx.restore();
+      }
+    });
+
+    const dynamicVectorLayer = new DynamicVectorOverlay();
+    dynamicVectorLayer.addTo(map);
+
+    // Load Regional Shard on Demand based on Viewport
+    async function loadShard(regCode) {
+      if (LOADED_SHARDS.has(regCode) || SHARD_LOADING.has(regCode)) return;
+      SHARD_LOADING.add(regCode);
+      try {
+        const res = await fetch(`./data/shards/${regCode}.json`);
+        if (!res.ok) return;
+        const items = await res.json();
+        for (let i = 0; i < items.length; i++) {
+          const [name, cat, lat, lng, z, pcode, conf, regAr] = items[i];
+          const st = CAT_STYLE[cat] || CAT_STYLE.shop;
+          const minZ = cat === 'shop' ? (conf >= 82 ? 17 : 18) : st.minZ;
+          addFeature({
+            name,
+            name_en: '',
+            cat,
+            lat,
+            lng,
+            minZ,
+            prio: st.prio + (conf / 100),
+            reg: regAr,
+            plus: pcode,
+            conf
+          });
+        }
+        LOADED_SHARDS.add(regCode);
+        dynamicVectorLayer._redraw();
+      } catch (e) {
+        console.warn('Shard load warning:', regCode, e);
+      } finally {
+        SHARD_LOADING.delete(regCode);
+      }
+    }
+
+    function checkViewportShards() {
+      const z = map.getZoom();
+      const b = map.getBounds();
+      if (z >= 14) {
+        REGIONS.forEach(r => {
+          if (r.tier === 'governorate' && z > 15) return;
+          const intersects = !(b.getSouth() > r.north || b.getNorth() < r.south || b.getWest() > r.east || b.getEast() < r.west);
+          if (intersects) loadShard(r.code);
+        });
+      }
+    }
+
+    // Load Core Startup Data + Full 12,788 Settlements
+    async function initMapData() {
+      try {
+        const res = await fetch('./data/core_index.json');
+        const core = await res.json();
+
+        // 1. 20 Districts
+        (core.districts || []).forEach(d => {
+          addFeature({
+            name: d.names?.ar || d.name,
+            name_en: d.names?.en || '',
+            cat: 'district',
+            lat: d.lat,
+            lng: d.lon,
+            minZ: 9,
+            prio: 100,
+            reg: d.names?.ar || d.name,
+            plus: encodePlusCode(d.lat, d.lon),
+            conf: 100
+          });
+        });
+
+        // 2. 8 Major Cities
+        REGIONS.filter(r => r.tier === 'urban').forEach(u => {
+          const lat = (u.north + u.south) / 2;
+          const lng = (u.east + u.west) / 2;
+          addFeature({
+            name: u.name_ar,
+            name_en: u.name_en,
+            cat: 'city',
+            lat,
+            lng,
+            minZ: 10,
+            prio: 98,
+            reg: u.name_ar,
+            plus: encodePlusCode(lat, lng),
+            conf: 100
+          });
+        });
+
+        // 3. 475 Overture Verified Places
+        (core.overture_places || []).forEach(p => {
+          const st = CAT_STYLE[p.c] || CAT_STYLE.company;
+          addFeature({
+            name: p.n,
+            name_en: '',
+            cat: p.c,
+            lat: p.lat,
+            lng: p.lng,
+            minZ: Math.min(st.minZ, 14),
+            prio: st.prio + 5,
+            reg: 'محافظة إب',
+            plus: encodePlusCode(p.lat, p.lng),
+            phone: p.ph,
+            web: p.w,
+            conf: 99
+          });
+        });
+
+        // 4. Priority Named POIs across Ibb
+        (core.priority_pois || []).forEach(item => {
+          const [name, cat, lat, lng, z, pcode, conf, regAr] = item;
+          const st = CAT_STYLE[cat] || CAT_STYLE.shop;
+          addFeature({
+            name,
+            name_en: '',
+            cat,
+            lat,
+            lng,
+            minZ: st.minZ,
+            prio: st.prio + 2,
+            reg: regAr,
+            plus: pcode,
+            conf
+          });
+        });
+
+        dynamicVectorLayer._redraw();
+
+        // Load all 12,788 settlements in background
+        const setRes = await fetch('./data/settlements_full.json');
+        const settlements = await setRes.json();
+        settlements.forEach(s => {
+          const [nameAr, nameEn, sub, pop, lat, lng] = s;
+          const minZ = pop >= 500 ? 12 : (pop >= 150 ? 13 : 15);
+          addFeature({
+            name: nameAr,
+            name_en: nameEn,
+            cat: 'settlement',
+            lat,
+            lng,
+            minZ,
+            prio: 60 + Math.min(pop / 100, 25),
+            reg: sub === 'neighborhood' ? 'حي سكني' : 'قرية / تجمع سكني',
+            plus: encodePlusCode(lat, lng),
+            conf: 95
+          });
+        });
+
+        dynamicVectorLayer._redraw();
+        // Preload Ibb City & central districts immediately
+        await Promise.all([
+          loadShard('U01_Ibb_City'),
+          loadShard('D01_Ibb'),
+          loadShard('D02_Al_Dhihar'),
+          loadShard('D03_Al_Mashannah'),
+          loadShard('D04_Jiblah')
+        ]);
+      } catch (err) {
+        console.error('Init data error:', err);
+      }
+    }
+
+    // Open Place Card Inspector
+    function openPlaceCard(f) {
+      const st = CAT_STYLE[f.cat] || CAT_STYLE.shop;
+      const pcode = f.plus || encodePlusCode(f.lat, f.lng);
+      document.getElementById('pc-title').textContent = f.name + (f.name_en ? ` (${f.name_en})` : '');
+      document.getElementById('pc-cat').innerHTML = `${st.icon} <span>${st.label}</span>`;
+      
+      let metaHtml = `<div><i class="fa-solid fa-location-dot" style="color:#10b981;"></i> النطاق: <strong>${f.reg || 'محافظة إب'}</strong></div>`;
+      if (f.phone) metaHtml += `<div><i class="fa-solid fa-phone" style="color:#38bdf8;"></i> الهاتف: <a href="tel:${f.phone}" style="color:#38bdf8;">${f.phone}</a></div>`;
+      if (f.web) metaHtml += `<div><i class="fa-solid fa-globe" style="color:#a855f7;"></i> الموقع: <a href="${f.web}" target="_blank" style="color:#a855f7;">فتح الرابط</a></div>`;
+      if (f.conf) metaHtml += `<div style="font-size:0.74rem; color:#94a3b8; margin-top:3px;">دقة التوثيق الجغرافي: ${f.conf}% | الزوم المرجعي: Z${f.minZ}</div>`;
+      document.getElementById('pc-meta').innerHTML = metaHtml;
+
+      document.getElementById('pc-coords-txt').textContent = `${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}`;
+      document.getElementById('pc-pluscode').textContent = pcode;
+      document.getElementById('pc-gmaps').href = `https://www.google.com/maps/search/?api=1&query=${f.lat},${f.lng}`;
+      document.getElementById('place-card').classList.add('open');
+
+      if (pinMarker) map.removeLayer(pinMarker);
+      pinMarker = L.circleMarker([f.lat, f.lng], {
+        radius: 9,
+        color: '#ffffff',
+        weight: 2.5,
+        fillColor: st.color,
+        fillOpacity: 1
+      }).addTo(map);
+
+      document.getElementById('pc-copy').onclick = () => {
+        navigator.clipboard.writeText(`${f.name} | ${f.lat.toFixed(6)}, ${f.lng.toFixed(6)} | ${pcode}`);
+        document.getElementById('pc-copy').innerHTML = '<i class="fa-solid fa-check"></i> تم النسخ!';
+        setTimeout(() => {
+          document.getElementById('pc-copy').innerHTML = '<i class="fa-regular fa-copy"></i> نسخ الإحداثيات';
+        }, 1500);
+      };
+    }
+
+    // Handle Click on Map (Check if user clicked a Dynamic Vector Label/Icon first; otherwise Reverse Geocode)
+    map.on('click', async (e) => {
+      const pt = map.latLngToContainerPoint(e.latlng);
+      for (let i = renderedHitBoxes.length - 1; i >= 0; i--) {
+        const box = renderedHitBoxes[i];
+        if (pt.x >= box.x0 && pt.x <= box.x1 && pt.y >= box.y0 && pt.y <= box.y1) {
+          openPlaceCard(box.f);
+          return;
+        }
+      }
+
+      // If clicked empty space, drop precision coordinate & address pin
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      const pcode = encodePlusCode(lat, lng);
+      const matchedReg = REGIONS.find(r => r.tier !== 'governorate' && lat >= r.south && lat <= r.north && lng >= r.west && lng <= r.east);
+
+      openPlaceCard({
+        name: 'نقطة فحص إحداثيات وعنوان مباشر',
+        name_en: `Z${map.getZoom()} Pin`,
+        cat: 'street',
+        lat,
+        lng,
+        minZ: map.getZoom(),
+        reg: matchedReg ? matchedReg.name_ar : 'محافظة إب',
+        plus: pcode,
+        conf: 100
+      });
+
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=ar`);
+        const d = await r.json();
+        if (d && d.display_name) {
+          document.getElementById('pc-title').textContent = d.name || d.address?.road || d.address?.suburb || 'موقع محدد في محافظة إب';
+          document.getElementById('pc-meta').innerHTML = `<div><i class="fa-solid fa-road" style="color:#10b981;"></i> العنوان التفصيلي: <strong>${d.display_name}</strong></div>`;
+        }
+      } catch (_) {}
+    });
+
+    // Update Cursor when hovering over a Dynamic Vector Label
+    map.on('mousemove', (e) => {
+      const lat = e.latlng.lat, lng = e.latlng.lng;
+      document.getElementById('status-coords').textContent = `خط العرض: ${lat.toFixed(6)}° | خط الطول: ${lng.toFixed(6)}° | Plus Code: ${encodePlusCode(lat, lng)}`;
+      const pt = e.containerPoint;
+      let hit = false;
+      for (let i = renderedHitBoxes.length - 1; i >= 0; i--) {
+        const b = renderedHitBoxes[i];
+        if (pt.x >= b.x0 && pt.x <= b.x1 && pt.y >= b.y0 && pt.y <= b.y1) {
+          hit = true;
+          break;
+        }
+      }
+      document.getElementById('map').style.cursor = hit ? 'pointer' : '';
+    });
+
+    map.on('moveend zoomend', () => {
+      document.getElementById('status-zoom').innerHTML = `الزوم: <strong style="color:#34d399;">${map.getZoom()}</strong> | نمط العرض: أسماء متجهة ديناميكية غير مطبوعة`;
+      checkViewportShards();
+    });
+
+    // Render 29 Sectors in Drawer & BBoxes
+    function renderRegionsDrawer() {
+      const listEl = document.getElementById('region-list');
+      listEl.innerHTML = '';
+      bboxesLayer.clearLayers();
+      const showBoxes = document.getElementById('chk-bboxes').checked;
+
+      REGIONS.forEach(r => {
+        const bounds = [[r.south, r.west], [r.north, r.east]];
+        if (showBoxes) {
+          const col = r.tier === 'governorate' ? '#f59e0b' : (r.tier === 'urban' ? '#38bdf8' : '#10b981');
+          L.rectangle(bounds, {
+            color: col,
+            weight: r.tier === 'governorate' ? 1.8 : 1,
+            dashArray: r.tier === 'governorate' ? '5,5' : null,
+            fillOpacity: 0.02,
+            interactive: false
+          }).addTo(bboxesLayer);
+        }
+
+        const item = document.createElement('div');
+        item.className = 'region-item';
+        item.innerHTML = `
+          <div>
+            <h4>${r.name_ar}</h4>
+            <p>${r.name_en} — ${r.code}</p>
+          </div>
+          <span class="r-badge">${r.zooms}</span>
+        `;
+        item.onclick = () => {
+          loadShard(r.code);
+          map.fitBounds(bounds, { padding: [25, 25], maxZoom: r.targetZoom });
+          if (window.innerWidth < 640) document.getElementById('drawer').classList.remove('open');
+        };
+        listEl.appendChild(item);
+      });
+    }
+
+    // Load ALL 29 Regional Shards on button click
+    document.getElementById('btn-load-all-shards').onclick = async function() {
+      this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري تحميل كافة الـ 29 قطاعاً...';
+      await Promise.all(REGIONS.map(r => loadShard(r.code)));
+      this.innerHTML = `<i class="fa-solid fa-check-double"></i> اكتمل تحميل ${ALL_FEATURES.length.toLocaleString()} موقع في الذاكرة!`;
+    };
+
+    // Base Map Switcher
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentBaseMode = btn.getAttribute('data-mode');
+        map.removeLayer(activeBaseLayer);
+        activeBaseLayer = baseLayers[currentBaseMode];
+        activeBaseLayer.addTo(map);
+        dynamicVectorLayer._redraw();
+      };
+    });
+
+    // Category Filter Pills
+    document.querySelectorAll('.cat-pill').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        activeCategoryFilter = pill.getAttribute('data-cat');
+        dynamicVectorLayer._redraw();
+      };
+    });
+
+    // Instant Search Bar across all loaded features
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    const clearBtn = document.getElementById('btn-clear-search');
+
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      clearBtn.style.display = q ? 'block' : 'none';
+      if (q.length < 2) {
+        searchResults.classList.remove('open');
+        return;
+      }
+      const matches = [];
+      for (let i = 0; i < ALL_FEATURES.length; i++) {
+        const f = ALL_FEATURES[i];
+        if (f.name.toLowerCase().includes(q) || (f.name_en && f.name_en.toLowerCase().includes(q))) {
+          matches.push(f);
+          if (matches.length >= 30) break;
+        }
+      }
+      searchResults.innerHTML = '';
+      if (matches.length === 0) {
+        searchResults.innerHTML = '<div class="search-item"><span class="s-sub">لا توجد نتائج مطابقة، جرب تحميل كافة القطاعات أو البحث بكلمة أخرى</span></div>';
+      } else {
+        matches.forEach(f => {
+          const st = CAT_STYLE[f.cat] || CAT_STYLE.shop;
+          const div = document.createElement('div');
+          div.className = 'search-item';
+          div.innerHTML = `
+            <div>
+              <div class="s-title">${st.icon} ${f.name}</div>
+              <div class="s-sub">${f.reg || 'محافظة إب'} — ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}</div>
+            </div>
+            <span class="s-tag">${st.label}</span>
+          `;
+          div.onclick = () => {
+            searchResults.classList.remove('open');
+            map.flyTo([f.lat, f.lng], 19, { duration: 1.2 });
+            openPlaceCard(f);
+          };
+          searchResults.appendChild(div);
+        });
+      }
+      searchResults.classList.add('open');
+    });
+
+    clearBtn.onclick = () => {
+      searchInput.value = '';
+      clearBtn.style.display = 'none';
+      searchResults.classList.remove('open');
+    };
+
+    // Quick Controls
+    document.getElementById('btn-z19').onclick = () => map.setZoom(19);
+    document.getElementById('btn-plus').onclick = () => map.zoomIn();
+    document.getElementById('btn-minus').onclick = () => map.zoomOut();
+    document.getElementById('btn-home').onclick = () => map.flyTo([13.9667, 44.1667], 13);
+    document.getElementById('pc-close').onclick = () => document.getElementById('place-card').classList.remove('open');
+
+    document.getElementById('btn-toggle-labels').onclick = function() {
+      showDynamicLabels = !showDynamicLabels;
+      document.getElementById('chk-dynamic-labels').checked = showDynamicLabels;
+      this.classList.toggle('active-toggle', showDynamicLabels);
+      dynamicVectorLayer._redraw();
+    };
+
+    document.getElementById('chk-dynamic-labels').onchange = function() {
+      showDynamicLabels = this.checked;
+      document.getElementById('btn-toggle-labels').classList.toggle('active-toggle', showDynamicLabels);
+      dynamicVectorLayer._redraw();
+    };
+
+    document.getElementById('chk-all-shops').onchange = function() {
+      showAllShopsZ18 = this.checked;
+      dynamicVectorLayer._redraw();
+    };
+
+    document.getElementById('chk-bboxes').onchange = () => renderRegionsDrawer();
+
+    document.getElementById('btn-open-drawer').onclick = () => document.getElementById('drawer').classList.add('open');
+    document.getElementById('btn-close-drawer').onclick = () => document.getElementById('drawer').classList.remove('open');
+
+    document.getElementById('btn-gps').onclick = () => {
+      if (!navigator.geolocation) return alert('الـ GPS غير مدعوم في متصفحك');
+      navigator.geolocation.getCurrentPosition(pos => {
+        map.flyTo([pos.coords.latitude, pos.coords.longitude], 18);
+      });
+    };
+
+    renderRegionsDrawer();
+    initMapData();
+  </script>
+</body>
+</html>
