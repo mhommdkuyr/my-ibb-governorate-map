@@ -1,9 +1,11 @@
-const CACHE_NAME = 'my-ibb-map-v1';
+const CACHE_NAME = 'my-ibb-map-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
+  './css/style.css',
+  './js/app.js',
   './manifest.json',
-  './data/core_index.json'
+  './data/core_lite.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -14,27 +16,42 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  // Cache-first strategy for data shards, core index, and map tiles for ultra-fast weak-internet browsing
-  if (url.pathname.includes('/data/') || url.hostname.includes('google.com') || url.hostname.includes('unpkg.com') || url.hostname.includes('cartocdn.com')) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
-        try {
-          const response = await fetch(event.request);
-          if (response && response.status === 200) {
-            cache.put(event.request, response.clone());
-          }
-          return response;
-        } catch (err) {
-          return cached || Response.error();
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  // Never intercept HTTP Range requests (206 Partial Content cannot be stored in CacheStorage)
+  if (req.headers.has('range')) return;
+
+  const url = new URL(req.url);
+  const shouldCache =
+    url.origin === self.location.origin ||
+    url.hostname.includes('unpkg.com') ||
+    url.hostname.includes('cdnjs.cloudflare.com') ||
+    url.hostname.includes('demotiles.maplibre.org');
+
+  if (!shouldCache) return;
+
+  event.respondWith(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(req);
+      if (cached) return cached;
+      try {
+        const res = await fetch(req);
+        if (res && res.status === 200) {
+          cache.put(req, res.clone());
         }
-      })
-    );
-  }
+        return res;
+      } catch (err) {
+        return cached || Response.error();
+      }
+    })
+  );
 });
