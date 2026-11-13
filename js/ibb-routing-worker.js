@@ -1,5 +1,5 @@
-// محرك التوجيه والملاحة المحلي الكامل لمحافظة إب (يعمل 100% بدون إنترنت داخل Web Worker)
-// يطبق خوارزمية A* الموزونة بالزمن والانحدار الجبلي + حساب زوايا الانعطاف العربية + المسار البديل
+// محرك التوجيه والملاحة المتقدم لمنصة إب ماركت (IBB Market Routing & Navigation Engine v5.0)
+// يدعم: السيارات، المشاة (الأقصر vs الأسهل الجبلي + الأزقة والسلالم)، النقاط الوسيطة (Waypoints)، المسارات البديلة، مرشح Kalman Filter، وMap Matching
 
 class MinHeap {
   constructor() { this.data = []; }
@@ -35,6 +35,32 @@ class MinHeap {
   get size() { return this.data.length; }
 }
 
+// 1D/2D Kalman Filter for noisy GPS coordinates in mountain cities
+class KalmanGPSFilter {
+  constructor(processNoise = 1e-6, measurementNoise = 4e-5) {
+    this.Q = processNoise;
+    this.R = measurementNoise;
+    this.lat = null;
+    this.lng = null;
+    this.P = 1.0;
+  }
+  update(rawLat, rawLng, accuracyMeters = 12) {
+    const R_adj = this.R * Math.max(0.5, accuracyMeters / 10);
+    if (this.lat === null) {
+      this.lat = rawLat;
+      this.lng = rawLng;
+      this.P = R_adj;
+      return { lat: this.lat, lng: this.lng, kalmanGain: 1.0 };
+    }
+    this.P += this.Q;
+    const K = this.P / (this.P + R_adj);
+    this.lat = this.lat + K * (rawLat - this.lat);
+    this.lng = this.lng + K * (rawLng - this.lng);
+    this.P = (1 - K) * this.P;
+    return { lat: +this.lat.toFixed(6), lng: +this.lng.toFixed(6), kalmanGain: +K.toFixed(3) };
+  }
+}
+
 const IBB_ROAD_SPEEDS_KMH = {
   trunk: 50,
   primary: 40,
@@ -43,7 +69,9 @@ const IBB_ROAD_SPEEDS_KMH = {
   residential: 16,
   service: 12,
   track: 12,
-  footway: 4.5
+  footway: 4.5,
+  alley: 4.2,
+  steps: 3.2
 };
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
@@ -74,7 +102,45 @@ function getTurnDirection(prevBearing, nextBearing) {
   return 'التف يساراً إلى';
 }
 
-function findNearestNodeId(graph, lat, lon) {
+// Map Matching: Project a GPS coordinate onto the nearest segment of a route polyline
+function snapToRouteSegment(lat, lng, routeCoords) {
+  if (!Array.isArray(routeCoords) || routeCoords.length < 2) {
+    return { snappedLat: lat, snappedLng: lng, offRouteMeters: 0, shouldReroute: false, segmentIndex: 0 };
+  }
+  let bestDist = Infinity;
+  let bestLat = lat, bestLng = lng, bestIdx = 0;
+
+  for (let i = 0; i < routeCoords.length - 1; i++) {
+    const [x1, y1] = routeCoords[i];     // [lng, lat]
+    const [x2, y2] = routeCoords[i + 1];
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq > 0 ? ((lng - x1) * dx + (lat - y1) * dy) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    const projLng = x1 + t * dx;
+    const projLat = y1 + t * dy;
+    const d = haversineMeters(lat, lng, projLat, projLng);
+    if (d < bestDist) {
+      bestDist = d;
+      bestLat = projLat;
+      bestLng = projLng;
+      bestIdx = i;
+    }
+  }
+  const bearing = bestIdx < routeCoords.length - 1
+    ? computeBearing(routeCoords[bestIdx][1], routeCoords[bestIdx][0], routeCoords[bestIdx + 1][1], routeCoords[bestIdx + 1][0])
+    : 0;
+  return {
+    snappedLat: +bestLat.toFixed(6),
+    snappedLng: +bestLng.toFixed(6),
+    offRouteMeters: Math.round(bestDist),
+    shouldReroute: bestDist > 38,
+    segmentIndex: bestIdx,
+    headingDeg: Math.round(bearing)
+  };
+}
+
+function findNearestNodeId(graph, lat, lon, mode = 'driving') {
   const nodes = graph.nodes;
   let bestId = 0, bestDist = Infinity;
   for (let i = 0; i < nodes.length; i++) {
@@ -84,10 +150,12 @@ function findNearestNodeId(graph, lat, lon) {
   return { id: bestId, distMeters: Math.round(bestDist), node: nodes[bestId] };
 }
 
-function runSingleAStar(graph, startNodeId, endNodeId, startLat, startLon, endLat, endLon, startSnapDist, endSnapDist, mode, penalizedEdges = null) {
+function runSingleAStar(graph, startNodeId, endNodeId, startLat, startLon, endLat, endLon, startSnapDist, endSnapDist, mode, penalizedEdges = null, walkPref = 'shortest') {
   const { nodes, adj, street_names } = graph;
   const endNode = nodes[endNodeId];
-  const maxSpeedMps = mode === 'walking' ? 1.4 : (55 / 3.6);
+  const isWalking = mode === 'walking' || mode === 'walking_easiest' || mode === 'walking_shortest';
+  const easiestWalk = mode === 'walking_easiest' || walkPref === 'easiest';
+  const maxSpeedMps = isWalking ? 1.4 : (55 / 3.6);
   const gScore = new Float64Array(nodes.length).fill(Infinity);
   const prevNode = new Int32Array(nodes.length).fill(-1);
   const prevEdge = new Array(nodes.length).fill(null);
@@ -109,13 +177,21 @@ function runSingleAStar(graph, startNodeId, endNodeId, startLat, startLon, endLa
     for (let i = 0; i < edges.length; i++) {
       const e = edges[i];
       const to = e[0], dist = e[1], cls = e[2], sIdx = e[3], slope = e[4] || 0;
-      if (mode === 'driving' && cls === 'footway') continue;
+      // Strict mode validation: driving cannot use footway/alley/steps
+      if (!isWalking && (cls === 'footway' || cls === 'steps' || cls === 'alley')) continue;
 
-      const baseKmh = mode === 'walking' ? 4.5 : (IBB_ROAD_SPEEDS_KMH[cls] || 18);
-      const slopeFactor = slope > 0.08 ? 1.35 : (slope < -0.08 ? 1.15 : 1.0);
+      const baseKmh = isWalking ? (cls === 'steps' ? 3.2 : 4.6) : (IBB_ROAD_SPEEDS_KMH[cls] || 18);
+      let slopeFactor = 1.0;
+      if (isWalking) {
+        slopeFactor = easiestWalk
+          ? (Math.abs(slope) > 0.05 ? 2.4 : 1.0)
+          : (slope > 0.08 ? 1.25 : 1.0);
+      } else {
+        slopeFactor = slope > 0.08 ? 1.35 : (slope < -0.08 ? 1.15 : 1.0);
+      }
       const penalty = (penalizedEdges && penalizedEdges.has(`${u}->${to}`)) ? 2.2 : 1.0;
-      const edgeTimeSec = (dist / (baseKmh / 3.6)) * slopeFactor * penalty;
-      const tentativeG = gScore[u] + edgeTimeSec;
+      const edgeCost = (dist / (baseKmh / 3.6)) * slopeFactor * penalty;
+      const tentativeG = gScore[u] + edgeCost;
 
       if (tentativeG < gScore[to]) {
         gScore[to] = tentativeG;
@@ -160,21 +236,23 @@ function runSingleAStar(graph, startNodeId, endNodeId, startLat, startLon, endLa
   const instructions = mergedSteps.map((s, idx) => {
     const dTxt = s.dist >= 1000 ? `${(s.dist / 1000).toFixed(2)} كم` : `${Math.round(s.dist)} متر`;
     const prefix = idx === 0
-      ? 'انطلق عبر'
+      ? (isWalking ? 'اسلك مشياً' : 'انطلق عبر')
       : getTurnDirection(mergedSteps[idx - 1].endBearing, s.startBearing);
-    const slopeNote = s.slope > 0.06 ? ' (صعود جبلي)' : (s.slope < -0.06 ? ' (منحدر)' : '');
+    const slopeNote = s.slope > 0.06 ? ' (عقبة/صعود جبلي)' : (s.slope < -0.06 ? ' (منحدر)' : '');
+    const alleyNote = (s.cls === 'footway' || s.street.includes('زغط')) ? ' [ممر مشاة/زغط]' : '';
     return {
-      text: `${prefix} ${s.street} لمسافة ${dTxt}${slopeNote}`,
+      text: `${prefix} ${s.street}${alleyNote} لمسافة ${dTxt}${slopeNote}`,
       maneuver: prefix,
       distMeters: Math.round(s.dist),
-      street: s.street
+      street: s.street,
+      roadClass: s.cls
     };
   });
 
   const totalDist = Math.round(
     rawSteps.reduce((acc, s) => acc + s.dist, 0) + startSnapDist + endSnapDist
   );
-  const extraSec = (startSnapDist + endSnapDist) / (mode === 'walking' ? 1.25 : 6.0);
+  const extraSec = (startSnapDist + endSnapDist) / (isWalking ? 1.25 : 6.0);
   const totalSec = Math.max(30, Math.round(gScore[endNodeId] + extraSec));
 
   return {
@@ -187,30 +265,57 @@ function runSingleAStar(graph, startNodeId, endNodeId, startLat, startLon, endLa
   };
 }
 
-function computeOfflineRoute(graph, startLat, startLon, endLat, endLon, mode = 'driving') {
+function computeOfflineRoute(graph, startLat, startLon, endLat, endLon, mode = 'driving', waypoints = []) {
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const startSnap = findNearestNodeId(graph, startLat, startLon);
-  const endSnap = findNearestNodeId(graph, endLat, endLon);
+  const points = [{ lat: startLat, lng: startLon }, ...(waypoints || []), { lat: endLat, lng: endLon }];
 
-  const primary = runSingleAStar(
-    graph, startSnap.id, endSnap.id, startLat, startLon, endLat, endLon,
-    startSnap.distMeters, endSnap.distMeters, mode
-  );
-  if (!primary) return null;
+  let totalDist = 0, totalSec = 0, totalExplored = 0;
+  const combinedCoords = [];
+  const combinedSteps = [];
+  const legs = [];
 
-  // Compute 1 genuine alternative route by penalizing middle edges of primary route
+  for (let p = 0; p < points.length - 1; p++) {
+    const A = points[p], B = points[p + 1];
+    const sSnap = findNearestNodeId(graph, A.lat, A.lng, mode);
+    const eSnap = findNearestNodeId(graph, B.lat, B.lng, mode);
+    const leg = runSingleAStar(graph, sSnap.id, eSnap.id, A.lat, A.lng, B.lat, B.lng, sSnap.distMeters, eSnap.distMeters, mode);
+    if (!leg) return null;
+    totalDist += leg.distanceMeters;
+    totalSec += leg.durationSeconds;
+    totalExplored += leg.exploredNodes;
+    legs.push({
+      legIndex: p + 1,
+      distanceMeters: leg.distanceMeters,
+      durationSeconds: leg.durationSeconds,
+      steps: leg.steps
+    });
+    leg.geometry.coordinates.forEach((c, idx) => {
+      if (p > 0 && idx === 0) return;
+      combinedCoords.push(c);
+    });
+    combinedSteps.push(...leg.steps);
+  }
+
+  const startSnap = findNearestNodeId(graph, startLat, startLon, mode);
+  const endSnap = findNearestNodeId(graph, endLat, endLon, mode);
+
+  // Compute alternative route (or Easiest Less-Steep Route for pedestrians)
   const alternatives = [];
-  if (primary.rawSteps.length >= 2) {
+  const firstLeg = runSingleAStar(graph, startSnap.id, endSnap.id, startLat, startLon, endLat, endLon, startSnap.distMeters, endSnap.distMeters, mode);
+  if (firstLeg && firstLeg.rawSteps.length >= 2) {
     const pen = new Set();
-    for (let i = 0; i < primary.rawSteps.length; i++) {
-      pen.add(`${primary.rawSteps[i].from}->${primary.rawSteps[i].to}`);
-    }
+    firstLeg.rawSteps.forEach(s => pen.add(`${s.from}->${s.to}`));
+    const isWalk = mode.startsWith('walking');
     const alt = runSingleAStar(
       graph, startSnap.id, endSnap.id, startLat, startLon, endLat, endLon,
-      startSnap.distMeters, endSnap.distMeters, mode, pen
+      startSnap.distMeters, endSnap.distMeters, isWalk ? 'walking_easiest' : mode, pen, 'easiest'
     );
-    if (alt && alt.distanceMeters !== primary.distanceMeters) {
+    if (alt) {
+      const diffDist = alt.distanceMeters - totalDist;
+      const diffMin = Math.round((alt.durationSeconds - totalSec) / 60);
       alternatives.push({
+        label: isWalk ? 'المسار الأسهل (الأقل انحداراً للمشاة)' : 'المسار البديل الموازي',
+        diffSummary: `${diffDist >= 0 ? '+' : ''}${diffDist} م (${diffMin >= 0 ? '+' : ''}${diffMin} د)`,
         durationSeconds: alt.durationSeconds,
         distanceMeters: alt.distanceMeters,
         geometry: alt.geometry,
@@ -221,20 +326,26 @@ function computeOfflineRoute(graph, startLat, startLon, endLat, endLon, mode = '
 
   const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
   return {
-    engine: 'Offline A* Road Graph (Ibb Local CH + Turn-by-Turn)',
+    engine: mode.startsWith('walking')
+      ? 'Pedestrian & Alley Routing Engine (Ibb Mountain Profile)'
+      : 'Vehicle A* Road Graph + Kalman/MapMatching',
+    mode,
     computeMs: +(now - t0).toFixed(2),
-    exploredNodes: primary.exploredNodes,
-    durationSeconds: primary.durationSeconds,
-    distanceMeters: primary.distanceMeters,
+    exploredNodes: totalExplored,
+    durationSeconds: totalSec,
+    distanceMeters: totalDist,
     startNodeName: startSnap.node[3],
     endNodeName: endSnap.node[3],
-    geometry: primary.geometry,
-    steps: primary.steps,
+    legs,
+    geometry: { type: 'LineString', coordinates: combinedCoords },
+    steps: combinedSteps,
     alternatives
   };
 }
 
 let GRAPH = null;
+const kalmanFilter = new KalmanGPSFilter();
+
 if (typeof self !== 'undefined') {
   self.onmessage = (e) => {
     const { type, payload, reqId } = e.data || {};
@@ -242,12 +353,22 @@ if (typeof self !== 'undefined') {
       GRAPH = payload;
       self.postMessage({ type: 'GRAPH_READY', nodes: GRAPH.nodes.length });
     } else if (type === 'ROUTE' && GRAPH) {
-      const res = computeOfflineRoute(GRAPH, payload.startLat, payload.startLon, payload.endLat, payload.endLon, payload.mode);
+      const res = computeOfflineRoute(
+        GRAPH, payload.startLat, payload.startLon, payload.endLat, payload.endLon,
+        payload.mode || 'driving', payload.waypoints || []
+      );
       self.postMessage({ type: 'ROUTE_RESULT', reqId, result: res });
+    } else if (type === 'SNAP_GPS') {
+      const filtered = kalmanFilter.update(payload.lat, payload.lng, payload.accuracy || 10);
+      const snapped = snapToRouteSegment(filtered.lat, filtered.lng, payload.routeCoords || []);
+      self.postMessage({ type: 'SNAP_GPS_RESULT', reqId, result: { ...filtered, ...snapped } });
     }
   };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { computeBearing, getTurnDirection, findNearestNodeId, computeOfflineRoute };
+  module.exports = {
+    KalmanGPSFilter, snapToRouteSegment, computeBearing,
+    getTurnDirection, findNearestNodeId, computeOfflineRoute
+  };
 }

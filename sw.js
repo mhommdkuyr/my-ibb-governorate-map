@@ -1,9 +1,11 @@
-const CACHE_NAME = 'my-ibb-map-v4-0-superpowers';
+const CACHE_NAME = 'my-ibb-map-v5-0-ibb-market';
 const CORE_ASSETS = [
   './',
   './index.html',
   './css/style.css',
+  './js/ibb-api-service.js',
   './js/app.js',
+  './js/ibb-store-integration.js',
   './js/ibb-search-worker.js',
   './js/ibb-routing-worker.js',
   './sdk/ibb-map-sdk.js',
