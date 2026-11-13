@@ -991,6 +991,78 @@
     showToast('تم تفعيل وضع العرض الخفيف (2D Canvas) الملائم للأجهزة الضعيفة');
   }
 
+
+  // 7B. Supabase Cloud Geo-Database Integration (Weak-Internet Viewport Streaming & Contributions)
+  const SUPABASE_URL = 'https://gdgtwonxbujgxfiqivvp.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkZ3R3b254YnVqZ3hmaXFpdnZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MjYzODAsImV4cCI6MjExMDEwMjM4MH0.F5Kq1s5pyIMch3aQGIOfU-B0V9fMVVvtO1Bm1y3FILI';
+  const SUPA_HEADERS = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  };
+  const SEEN_POI_KEYS = new Set(INITIAL_CORE_POIS.map(p => `${p.name}|${p.lat.toFixed(5)}|${p.lng.toFixed(5)}`));
+
+  function mergeCloudPois(rows) {
+    if (!Array.isArray(rows) || !rows.length) return;
+    const fresh = [];
+    for (const r of rows) {
+      const lat = +r.lat, lng = +r.lng;
+      const key = `${r.name}|${lat.toFixed(5)}|${lng.toFixed(5)}`;
+      if (SEEN_POI_KEYS.has(key)) continue;
+      SEEN_POI_KEYS.add(key);
+      fresh.push({
+        name: r.name, cat: r.cat || 'shop', catAr: r.cat_ar || CAT_AR[r.cat] || 'منشأة',
+        lat, lng, reg: r.reg || 'محافظة إب', hara: r.hara || '', addr: r.addr || '',
+        plusCode: r.plus_code || '', floors: r.floors || 2, elev: r.elev || 2040,
+        rating: r.rating || 4.5, phone: r.phone || ''
+      });
+    }
+    if (fresh.length) {
+      ALL_LOADED_POIS.push(...fresh);
+      searchWorker.postMessage({ type: 'ADD_ITEMS', payload: fresh });
+      updatePoiLayers();
+    }
+  }
+
+  let supaTimer = null;
+  function fetchSupabaseViewport(lat, lng, zoom) {
+    if (!navigator.onLine) return;
+    clearTimeout(supaTimer);
+    supaTimer = setTimeout(async () => {
+      try {
+        const span = Math.max(0.008, Math.min(0.08, 0.12 / Math.pow(2, Math.max(0, zoom - 12))));
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_ibb_pois_in_bbox`, {
+          method: 'POST',
+          headers: SUPA_HEADERS,
+          body: JSON.stringify({
+            min_lat: lat - span, min_lng: lng - span,
+            max_lat: lat + span, max_lng: lng + span,
+            filter_cat: activeCatFilter || 'all',
+            max_rows: 180
+          })
+        });
+        if (res.ok) {
+          const rows = await res.json();
+          mergeCloudPois(rows);
+        }
+      } catch {}
+    }, 320);
+  }
+
+  async function saveContributionToSupabase(item) {
+    if (!navigator.onLine) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/ibb_contributions`, {
+        method: 'POST',
+        headers: SUPA_HEADERS,
+        body: JSON.stringify({
+          name: item.name, cat: item.cat, lat: item.lat, lng: item.lng,
+          reg: 'توثيق ميداني', hara: item.hara || '', addr: item.notes || '', phone: item.phone || ''
+        })
+      });
+    } catch {}
+  }
+
   // 8. State & Dynamic GeoJSON Sources (POIs, Highlighted 3D Building, Routing, StreetView)
   const ALL_LOADED_POIS = [...INITIAL_CORE_POIS];
   const LOADED_SHARDS = new Set();
@@ -1270,6 +1342,7 @@
     bootstrapDataPipelines();
     const c = map.getCenter();
     loadNearestShard(c.lat, c.lng);
+    fetchSupabaseViewport(c.lat, c.lng, map.getZoom());
   });
 
   map.on('moveend zoomend', () => {
@@ -1279,6 +1352,7 @@
     document.getElementById('status-coords').textContent = `خط العرض: ${c.lat.toFixed(6)}° | خط الطول: ${c.lng.toFixed(6)}° | Plus Code: ${encodePlusCode(c.lat, c.lng)} | الارتفاع: ~2,040 م`;
     updatePoiLayers();
     if (z >= 14.0) loadNearestShard(c.lat, c.lng);
+    fetchSupabaseViewport(c.lat, c.lng, z);
   });
 
   map.on('mousemove', (e) => {
@@ -1920,6 +1994,7 @@
     else list.unshift(item);
 
     saveContribs(list);
+    saveContributionToSupabase(item);
     const enrichedItem = { name: item.name, cat: item.cat, catAr: CAT_AR[item.cat] || item.cat, lat: item.lat, lng: item.lng, reg: 'توثيق ميداني', hara: item.hara, addr: item.notes, phone: item.phone };
     ALL_LOADED_POIS.unshift(enrichedItem);
     searchWorker.postMessage({ type: 'ADD_ITEMS', payload: [enrichedItem] });
