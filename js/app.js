@@ -608,7 +608,259 @@
     : 'https://mhommdkuyr.github.io/my-ibb-governorate-map';
   const PM_BASE = `${HOST_ORIGIN}/pmtiles`;
 
-  const map = new maplibregl.Map({
+
+  // Lightweight 2D Canvas Fallback Map Engine for WebGL-disabled / Ultra-Weak Devices
+  function createFallbackMap2D(containerId, initCenter, initZoom) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'width:100%;height:100%;display:block;cursor:grab;background:#f1f5f9;';
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    let cLng = initCenter[0], cLat = initCenter[1], zoom = initZoom, pitch = 0, bearing = 0;
+    let isDarkTheme = false, isSatTheme = false;
+    const sources = {}, layers = {}, listeners = {};
+    const emit = (ev, arg) => (listeners[ev] || []).forEach(fn => { try { fn(arg); } catch {} });
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = container.clientWidth * dpr;
+      canvas.height = container.clientHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+    function lngLatToPx(lng, lat) {
+      const scale = Math.pow(2, zoom) * 256 / 360;
+      const cosLat = Math.cos(cLat * Math.PI / 180);
+      const x = (lng - cLng) * scale * cosLat + container.clientWidth / 2;
+      const y = (cLat - lat) * scale + container.clientHeight / 2;
+      return [x, y];
+    }
+    function pxToLngLat(x, y) {
+      const scale = Math.pow(2, zoom) * 256 / 360;
+      const cosLat = Math.cos(cLat * Math.PI / 180);
+      const lng = cLng + (x - container.clientWidth / 2) / (scale * cosLat);
+      const lat = cLat - (y - container.clientHeight / 2) / scale;
+      return { lng, lat };
+    }
+
+    let drawScheduled = false;
+    function scheduleDraw() {
+      if (drawScheduled) return;
+      drawScheduled = true;
+      requestAnimationFrame(() => { drawScheduled = false; draw(); });
+    }
+
+    function draw() {
+      const w = container.clientWidth, h = container.clientHeight;
+      if (!w || !h) return;
+      ctx.fillStyle = isSatTheme ? '#1e293b' : (isDarkTheme ? '#0f172a' : '#eef2f6');
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle grid
+      ctx.strokeStyle = isDarkTheme ? 'rgba(148,163,184,0.08)' : 'rgba(148,163,184,0.18)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y < h; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+      // Draw Roads
+      const roads = sources['core_roads_emb']?.features || [];
+      ctx.strokeStyle = isDarkTheme ? '#334155' : '#cbd5e1';
+      ctx.lineWidth = zoom >= 15 ? 3.2 : 1.8;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < roads.length; i++) {
+        const coords = roads[i].geometry?.coordinates;
+        if (!coords || coords.length < 2) continue;
+        ctx.beginPath();
+        for (let j = 0; j < coords.length; j++) {
+          const [px, py] = lngLatToPx(coords[j][0], coords[j][1]);
+          if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+
+      // Draw 2.5D Buildings
+      if (zoom >= 14.2) {
+        const blds = sources['core_blds_emb']?.features || [];
+        ctx.fillStyle = isDarkTheme ? 'rgba(51,65,85,0.75)' : 'rgba(203,213,225,0.85)';
+        ctx.strokeStyle = isDarkTheme ? '#475569' : '#94a3b8';
+        ctx.lineWidth = 0.7;
+        for (let i = 0; i < blds.length; i++) {
+          const ring = blds[i].geometry?.coordinates?.[0];
+          if (!ring || ring.length < 3) continue;
+          const [x0, y0] = lngLatToPx(ring[0][0], ring[0][1]);
+          if (x0 < -60 || x0 > w + 60 || y0 < -60 || y0 > h + 60) continue;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          for (let j = 1; j < ring.length; j++) {
+            const [px, py] = lngLatToPx(ring[j][0], ring[j][1]);
+            ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      // Highlighted Building
+      const hl = sources['hl-building']?.features || [];
+      if (hl.length) {
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.78)';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        hl.forEach(f => {
+          const ring = f.geometry?.coordinates?.[0] || [];
+          if (!ring.length) return;
+          ctx.beginPath();
+          ring.forEach((pt, idx) => {
+            const [px, py] = lngLatToPx(pt[0], pt[1]);
+            if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          });
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+
+      // Active A* Route
+      const rt = sources['route-line']?.features || [];
+      if (rt.length) {
+        ctx.strokeStyle = '#0ea5e9';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        rt.forEach(f => {
+          const coords = f.geometry?.coordinates || [];
+          if (coords.length < 2) return;
+          ctx.beginPath();
+          coords.forEach((pt, idx) => {
+            const [px, py] = lngLatToPx(pt[0], pt[1]);
+            if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          });
+          ctx.stroke();
+        });
+      }
+
+      // POIs
+      const pois = sources['pois-src']?.features || [];
+      let drawn = 0;
+      ctx.font = '600 11px Cairo, sans-serif';
+      ctx.textAlign = 'center';
+      for (let i = 0; i < pois.length && drawn < 120; i++) {
+        const f = pois[i];
+        const [lng, lat] = f.geometry.coordinates;
+        const [px, py] = lngLatToPx(lng, lat);
+        if (px < -20 || px > w + 20 || py < -20 || py > h + 20) continue;
+        drawn++;
+        ctx.fillStyle = f.properties.color || '#10b981';
+        ctx.beginPath();
+        ctx.arc(px, py, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+        if (zoom >= 15 && drawn < 35) {
+          ctx.fillStyle = isDarkTheme ? '#f8fafc' : '#0f172a';
+          ctx.fillText(f.properties.name || '', px, py + 16);
+        }
+      }
+    }
+
+    // Pan & Zoom interactions
+    let dragging = false, lastX = 0, lastY = 0, moved = false;
+    canvas.addEventListener('mousedown', (e) => { dragging = true; moved = false; lastX = e.clientX; lastY = e.clientY; canvas.style.cursor = 'grabbing'; });
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      lastX = e.clientX; lastY = e.clientY;
+      const scale = Math.pow(2, zoom) * 256 / 360;
+      const cosLat = Math.cos(cLat * Math.PI / 180);
+      cLng -= dx / (scale * cosLat);
+      cLat += dy / scale;
+      scheduleDraw();
+      emit('moveend');
+    });
+    window.addEventListener('mouseup', () => { dragging = false; canvas.style.cursor = 'grab'; });
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      zoom = Math.max(8, Math.min(20, zoom + (e.deltaY < 0 ? 0.5 : -0.5)));
+      scheduleDraw();
+      emit('moveend');
+    }, { passive: false });
+    canvas.addEventListener('click', (e) => {
+      if (moved) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const ll = pxToLngLat(x, y);
+      const pois = sources['pois-src']?.features || [];
+      let hit = null, bestD = 18;
+      for (const f of pois) {
+        const [px, py] = lngLatToPx(f.geometry.coordinates[0], f.geometry.coordinates[1]);
+        const d = Math.hypot(px - x, py - y);
+        if (d < bestD) { bestD = d; hit = f; }
+      }
+      if (hit) {
+        emit('click:pois-dots', { features: [hit], lngLat: ll, point: { x, y } });
+      } else {
+        emit('click', { lngLat: ll, point: { x, y } });
+      }
+    });
+
+    window.addEventListener('resize', resize);
+    setTimeout(() => { resize(); emit('load'); }, 30);
+
+    return {
+      isFallback2D: true,
+      getCenter: () => ({ lng: cLng, lat: cLat }),
+      getZoom: () => zoom,
+      getPitch: () => pitch,
+      setPitch: (p) => { pitch = p; },
+      setBearing: (b) => { bearing = b; },
+      flyTo: (opts = {}) => {
+        if (opts.center) { cLng = opts.center[0]; cLat = opts.center[1]; }
+        if (opts.zoom !== undefined) zoom = opts.zoom;
+        if (opts.pitch !== undefined) pitch = opts.pitch;
+        scheduleDraw();
+        emit('moveend');
+      },
+      jumpTo: (opts = {}) => {
+        if (opts.center) { cLng = opts.center[0]; cLat = opts.center[1]; }
+        if (opts.zoom !== undefined) zoom = opts.zoom;
+        scheduleDraw();
+      },
+      getSource: (id) => ({
+        setData: (d) => { sources[id] = d; scheduleDraw(); }
+      }),
+      addSource: (id, obj) => { sources[id] = obj.data || null; scheduleDraw(); },
+      getLayer: (id) => layers[id] || null,
+      addLayer: (l) => { layers[l.id] = l; scheduleDraw(); },
+      setLayoutProperty: (id, prop, val) => {
+        if (id === 'orbital-sat-layer') isSatTheme = (val === 'visible');
+        if (id === 'bg' || id === 'sky') isDarkTheme = !isSatTheme && isDarkTheme;
+        scheduleDraw();
+      },
+      setPaintProperty: (id, prop, val) => {
+        if (id === 'bg' && prop === 'background-color') isDarkTheme = (val === '#090f1d' || val === '#0b1120');
+        scheduleDraw();
+      },
+      setTerrain: () => {},
+      setFilter: () => {},
+      getCanvas: () => canvas,
+      queryRenderedFeatures: () => [],
+      on: (ev, a, b) => {
+        const key = typeof a === 'string' ? (ev + ':' + a) : ev;
+        const fn = typeof a === 'string' ? b : a;
+        if (!listeners[key]) listeners[key] = [];
+        listeners[key].push(fn);
+      }
+    };
+  }
+
+  let map;
+  try {
+    map = new maplibregl.Map({
     container: 'map',
     center: [44.1680, 13.9715],
     zoom: 16.2,
@@ -728,13 +980,16 @@
         }
       ]
     }
-  });
-
-  // Handle WebGL Context Loss gracefully (per REA webgl.js analysis)
-  map.getCanvas().addEventListener('webglcontextlost', (e) => {
-    e.preventDefault();
-    showToast('جاري استعادة سياق البطاقة الرسومية WebGL...');
-  });
+    });
+    map.getCanvas().addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      showToast('جاري استعادة سياق البطاقة الرسومية WebGL...');
+    });
+  } catch (webglErr) {
+    console.warn('WebGL unavailable, activating 2D Canvas Fallback Engine:', webglErr);
+    map = createFallbackMap2D('map', [44.1680, 13.9715], 16.2);
+    showToast('تم تفعيل وضع العرض الخفيف (2D Canvas) الملائم للأجهزة الضعيفة');
+  }
 
   // 8. State & Dynamic GeoJSON Sources (POIs, Highlighted 3D Building, Routing, StreetView)
   const ALL_LOADED_POIS = [...INITIAL_CORE_POIS];
