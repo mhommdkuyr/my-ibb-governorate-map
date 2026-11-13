@@ -237,7 +237,8 @@
       sub: 'الشريان التجاري الأول • الارتفاع: 2,046 م • 7H56X5FG+F7G',
       lat: 13.97415, lng: 44.17480, heading: 110,
       img: './assets/streetview_1.jpg',
-      shops: ['مركز جرعان التجاري', 'بنك اليمن الدولي', 'الكريمي للصرافة', 'أبو أيمن للأجهزة الذكية', 'كيان كافي']
+      shops: ['مركز جرعان التجاري', 'بنك اليمن الدولي', 'الكريمي للصرافة', 'أبو أيمن للأجهزة الذكية', 'كيان كافي'],
+      links: [{ id: 'sv_udayn_round', label: 'غرباً إلى جولة العدين ⬅️' }, { id: 'sv_old_city', label: 'شرقاً إلى المدينة القديمة ➡️' }]
     },
     {
       id: 'sv_old_city',
@@ -245,7 +246,8 @@
       sub: 'العمارة الحجرية التاريخية والقمريات • الارتفاع: 2,085 م • 7H56X5GQ+GRF',
       lat: 13.97631, lng: 44.18955, heading: 45,
       img: './assets/streetview_2.jpg',
-      shops: ['زغط الجامع الكبير العمري', 'زغط جامع الأسدية', 'سوق البز الأعلى', 'باب الكبير التاريخي']
+      shops: ['زغط الجامع الكبير العمري', 'زغط جامع الأسدية', 'سوق البز الأعلى', 'باب الكبير التاريخي'],
+      links: [{ id: 'sv_udayn_st', label: 'غرباً إلى شارع العدين ⬅️' }]
     },
     {
       id: 'sv_udayn_round',
@@ -253,7 +255,8 @@
       sub: 'تقاطع المحاور الأربعة • الارتفاع: 2,030 م • 7H56X5F6+2J0',
       lat: 13.97265, lng: 44.16155, heading: 185,
       img: './assets/streetview_3.jpg',
-      shops: ['سوق إب جولة العدين', 'آسيا للتسوق', 'ظمران سنتر', 'صيدلية النهي']
+      shops: ['سوق إب جولة العدين', 'آسيا للتسوق', 'ظمران سنتر', 'صيدلية النهي'],
+      links: [{ id: 'sv_udayn_st', label: 'شرقاً إلى شارع العدين ➡️' }, { id: 'sv_thalatheen', label: 'جنوباً إلى شارع الثلاثين ⬇️' }]
     },
     {
       id: 'sv_thalatheen',
@@ -261,7 +264,8 @@
       sub: 'منطقة الفنادق والمنتجعات • الارتفاع: 2,020 م • 7H56X595+800',
       lat: 13.96850, lng: 44.15650, heading: 260,
       img: './assets/streetview_4.jpg',
-      shops: ['فندق هلتون إب السياحي', 'سوق الثلاثين', 'جامعة القلم للعلوم الإنسانية', 'مركز الورافي']
+      shops: ['فندق هلتون إب السياحي', 'سوق الثلاثين', 'جامعة القلم للعلوم الإنسانية', 'مركز الورافي'],
+      links: [{ id: 'sv_udayn_round', label: 'شمالاً إلى جولة العدين ⬆️' }]
     }
   ];
 
@@ -1405,7 +1409,8 @@
 
   document.getElementById('pc-copy').onclick = () => {
     if (!lastSelectedPlace) return;
-    const str = `${lastSelectedPlace.name} | ${lastSelectedPlace.hara || lastSelectedPlace.reg} | Plus Code: ${lastSelectedPlace.plusCode} | ${lastSelectedPlace.lat.toFixed(6)}, ${lastSelectedPlace.lng.toFixed(6)}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?lat=${lastSelectedPlace.lat.toFixed(6)}&lng=${lastSelectedPlace.lng.toFixed(6)}&q=${encodeURIComponent(lastSelectedPlace.name)}`;
+    const str = `${lastSelectedPlace.name} | ${lastSelectedPlace.hara || lastSelectedPlace.reg} | Plus Code: ${lastSelectedPlace.plusCode} | ${shareUrl}`;
     copyToClipboard(str);
     showToast('تم نسخ العنوان الرقمي ورمز Plus Code');
   };
@@ -1491,7 +1496,22 @@
     }
     const c = map.getCenter();
     const allowed = CAT_GROUPS[activeCatFilter];
-    const res = await workerSearch(q, c.lat, c.lng, allowed, 25);
+    let res = await workerSearch(q, c.lat, c.lng, allowed, 25);
+    if (res.matches.length < 6 && navigator.onLine && q.length >= 2) {
+      try {
+        const sr = await fetch(`${SUPABASE_URL}/rest/v1/rpc/search_ibb_pois`, {
+          method: 'POST', headers: SUPA_HEADERS,
+          body: JSON.stringify({ q_text: q, user_lat: c.lat, user_lng: c.lng, filter_cat: activeCatFilter || 'all', max_rows: 15 })
+        });
+        if (sr.ok) {
+          const rows = await sr.json();
+          if (Array.isArray(rows) && rows.length) {
+            mergeCloudPois(rows);
+            res = await workerSearch(q, c.lat, c.lng, allowed, 25);
+          }
+        }
+      } catch {}
+    }
 
     searchMetaBar.classList.add('open');
     document.getElementById('search-time-txt').textContent = `${res.tookMs} ms • ${res.matches.length} نتيجة`;
@@ -1717,9 +1737,19 @@
     currentSvHeading = node.heading;
     updateSvTransform();
 
+    const navLinksHtml = (node.links || []).map(lk =>
+      `<button class="chip-btn sv-nav-link" data-svid="${lk.id}" style="margin:4px 3px; background:rgba(56,189,248,0.18); border-color:#38bdf8; color:#e0f2fe;"><i class="fa-solid fa-route"></i> ${lk.label}</button>`
+    ).join('');
     document.getElementById('sv-nearby-shops').innerHTML =
+      (navLinksHtml ? `<div style="margin-bottom:6px;">${navLinksHtml}</div>` : '') +
       `<strong><i class="fa-solid fa-store" style="color:#34d399;"></i> الواجهات التجارية المرتبطة بهذه النقطة:</strong><br/>` +
       node.shops.map(s => `<span style="display:inline-block; background:rgba(16,185,129,0.14); color:#34d399; padding:2px 7px; border-radius:6px; margin:3px 2px;">${s}</span>`).join('');
+    document.querySelectorAll('.sv-nav-link').forEach(btn => {
+      btn.onclick = () => {
+        const target = STREETVIEW_NODES.find(x => x.id === btn.dataset.svid);
+        if (target) openStreetViewNode(target);
+      };
+    });
 
     map.flyTo({ center: [node.lng, node.lat], zoom: 17.8, pitch: 60, bearing: node.heading - 180 });
   }
@@ -2211,4 +2241,17 @@
 
   renderOfflineManager();
   renderContribList();
+
+  // Deep-Link Support (?lat=...&lng=...&q=...)
+  try {
+    const usp = new URLSearchParams(window.location.search);
+    const dLat = parseFloat(usp.get('lat')), dLng = parseFloat(usp.get('lng'));
+    const dQ = usp.get('q');
+    if (!isNaN(dLat) && !isNaN(dLng)) {
+      setTimeout(() => {
+        map.flyTo({ center: [dLng, dLat], zoom: 18.0, pitch: is3D ? 55 : 0 });
+        showPlaceCard({ name: dQ || 'موقع مشترك', catAr: 'رابط مشاركة مباشر' }, { lat: dLat, lng: dLng });
+      }, 400);
+    }
+  } catch {}
 })();

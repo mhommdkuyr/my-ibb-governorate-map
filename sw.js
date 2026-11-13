@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-ibb-map-v3-4-enterprise';
+const CACHE_NAME = 'my-ibb-map-v4-0-superpowers';
 const CORE_ASSETS = [
   './',
   './index.html',
