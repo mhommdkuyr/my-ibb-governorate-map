@@ -586,22 +586,6 @@
   // Seed search worker immediately with initial core POIs
   searchWorker.postMessage({ type: 'ADD_ITEMS', payload: INITIAL_CORE_POIS });
 
-  // 7. MapLibre GL JS + PMTiles (IndexedDBByteSource) + 3D Terrain Initialization
-  maplibregl.setRTLTextPlugin(
-    'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.2.3/mapbox-gl-rtl-text.min.js',
-    true
-  );
-
-  const protocol = new pmtiles.Protocol();
-  maplibregl.addProtocol('pmtiles', (params, abortController) => {
-    const rawUrl = params.url.replace(/^pmtiles:\/\//, '');
-    if (!protocol.tiles.get(rawUrl)) {
-      const source = new IndexedDBByteSource(rawUrl);
-      protocol.tiles.set(rawUrl, new pmtiles.PMTiles(source));
-    }
-    return protocol.tile(params, abortController);
-  });
-
   // Always resolve PMTiles from the live repository origin or current host
   const HOST_ORIGIN = window.location.protocol.startsWith('http') && window.location.hostname.includes('github.io')
     ? (window.location.origin + window.location.pathname.replace(/\/[^/]*$/, ''))
@@ -860,6 +844,22 @@
 
   let map;
   try {
+    if (typeof maplibregl === 'undefined' || typeof pmtiles === 'undefined') {
+      throw new Error('MapLibre or PMTiles CDN unavailable');
+    }
+    maplibregl.setRTLTextPlugin(
+      'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.2.3/mapbox-gl-rtl-text.min.js',
+      true
+    );
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', (params, abortController) => {
+      const rawUrl = params.url.replace(/^pmtiles:\/\//, '');
+      if (!protocol.tiles.get(rawUrl)) {
+        const source = new IndexedDBByteSource(rawUrl);
+        protocol.tiles.set(rawUrl, new pmtiles.PMTiles(source));
+      }
+      return protocol.tile(params, abortController);
+    });
     map = new maplibregl.Map({
     container: 'map',
     center: [44.1680, 13.9715],
